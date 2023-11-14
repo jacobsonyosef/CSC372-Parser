@@ -10,7 +10,7 @@ public class Parser {
 	private static Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
 	private static Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
 	private static Pattern intDec = Pattern.compile("^drill down on (.+)$");
-	private static Pattern intSub = Pattern.compile("^(.+)Ivan drill down on (.+)$");
+	private static Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
 	private static Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
 	private static Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
@@ -48,7 +48,7 @@ public class Parser {
 
 			match = varAssign(expression);
 			if (!match) match = parseEquality(expression);
-			if (!match) match =	parseIncrement(expression);
+			if (!match) match = parseIncrement(expression);
 			if (!match) match = parseAdd(expression);
 			if (!match) match = parseDecrement(expression);
 			if (!match) match = parseSubtract(expression);
