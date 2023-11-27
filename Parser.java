@@ -6,6 +6,8 @@ public class Parser {
 	private static Pattern sentence = Pattern.compile("^(.+)\\.$");
 	private static Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private static Pattern varAssign = Pattern.compile("^(.+) said (.+)$");
+
+
 	
 	private static Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
 	private static Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
