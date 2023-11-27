@@ -19,7 +19,7 @@ public class Parser {
 	private static Pattern boolNOT = Pattern.compile("^not (.+)$");
 	private static Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
 
-	private static Pattern whileLoop = Pattern.compile("^Keep (.+) in the loop, regarding: (.+).");
+	private static Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
 	private static Pattern boolVar = Pattern.compile("^B.+$");
 	private static Pattern intVar = Pattern.compile("^I.+$");
@@ -36,7 +36,7 @@ public class Parser {
 		Scanner in = new Scanner(System.in);
 		System.out.print(">> ");
 		String input = in.nextLine();
-		while(!input.equals("e  xit")) {
+		while(!input.equals("exit")) {
 			parse(input);
 			System.out.print(">> ");
 			input = in.nextLine();
@@ -244,6 +244,15 @@ public class Parser {
 		}
 
 		return false;
+	}
+
+	private static boolean parseLoop(String expr) {
+		Matcher loop = new loop.matcher(expression);
+
+		if (loop.find()) {
+			String argument = loop.group(1);
+			Matcher boolStmt = 
+		}
 	}
 
 	private static boolean parseDecrement(String expression) {
