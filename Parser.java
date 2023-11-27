@@ -18,7 +18,12 @@ public class Parser {
 		WRONG
 	}
 
+	// managing scope in functions?
+	// declaring a new function for parser
+	// Subject: Names...
+
 	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
+	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
 	private Pattern sentence = Pattern.compile("^(.+)\\.$");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
@@ -64,8 +69,8 @@ public class Parser {
 		Parser parser = new Parser();
 
 		if (args.length == 0) {
-			// if no file is supplied, go into command-line mode
-			REPL(parser);
+			// if no file is supplied, return
+			System.out.println("Please input a file name.");
 			return;
 		}
 
@@ -94,36 +99,18 @@ public class Parser {
     }
     
 	/*
-	 * Command-line interactive moee
+	 * Get the body of the email
 	 */
-    private static void REPL(Parser parser) {
-        Scanner in = new Scanner(System.in);
-		System.out.println("Welcome to EMAIL LANG 1.0!! You get it all day at work, now you can get it at home too!");
-		System.out.println("Type \"Farewell\" to exit the program.");
-		System.out.print(">> ");
-		String input = in.nextLine();
-
-		// COME BACK TO THIS??
-		while(!input.equals("Farewell")) {
-			// Matcher epilogMatcher = epilog.Matcher();
-			parser.parse(input);
-			System.out.print(">> ");
-			input = in.nextLine();
-		}
-		in.close();
-    }
-    
     private String getBody(String text){
         Matcher pm = prolog.matcher(text);
         Matcher em = epilog.matcher(text);
         String p = "";
         String e = "";
-        if(pm.find()){
-            p = pm.group();
-        }
-        if(em.find()){
-            e = em.group();
-        }
+
+        if(pm.find()) p = pm.group();
+        if(em.find()) e = em.group();
+
+		// substract out prologue and epilogue to get body of text
         text = text.substring(p.length(), text.length() - 1);
         text = text.substring(0, text.length() - e.length());
         return text;
