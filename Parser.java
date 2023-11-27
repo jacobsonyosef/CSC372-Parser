@@ -98,13 +98,18 @@ public class Parser {
 	 */
     private static void REPL(Parser parser) {
         Scanner in = new Scanner(System.in);
+		System.out.println("Type \"Farewell\" to exit the program.")
 		System.out.print(">> ");
 		String input = in.nextLine();
-		while(!input.equals("exit")) {
+
+		// COME BACK TO THIS??
+		while(!input.equals("Farewell")) {
+			// Matcher epilogMatcher = epilog.Matcher();
 			parser.parse(input);
 			System.out.print(">> ");
 			input = in.nextLine();
 		}
+		in.close();
     }
     
     private String getBody(String text){
