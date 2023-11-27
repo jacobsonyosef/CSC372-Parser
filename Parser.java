@@ -98,7 +98,8 @@ public class Parser {
 	 */
     private static void REPL(Parser parser) {
         Scanner in = new Scanner(System.in);
-		System.out.println("Type \"Farewell\" to exit the program.")
+		System.out.println("Welcome to EMAIL LANG 1.0!! You get it all day at work, now you can get it at home too!");
+		System.out.println("Type \"Farewell\" to exit the program.");
 		System.out.print(">> ");
 		String input = in.nextLine();
 
@@ -131,7 +132,7 @@ public class Parser {
     private String parseBody(String text){
         var sentences = sentence.matcher(text);
 		String body = "";
-        body += 
+        // body += 
         
         return body;
     }
