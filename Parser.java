@@ -1,49 +1,163 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
-
+import java.util.HashSet;
+import java.io.File;
+import java.io.FileNotFoundException; 
+import java.util.Scanner; 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.IOException;
 public class Parser {
-	private static Pattern sentence = Pattern.compile("^(.+)\\.$");
-	private static Pattern equality = Pattern.compile("^(.+) says (.+)$");
-	private static Pattern varAssign = Pattern.compile("^(.+) said (.+)$");
+	enum Type{
+		BOOL,
+		INT,
+		CHAR,
+		WRONG
+	}
+	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
+	private Pattern epilog = Pattern.compile("Best, ^[BICS]([a-zA-Z]+)$");
+	private Pattern sentence = Pattern.compile("^(.+)\\.$");
+	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
+	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
-	private static Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
-	private static Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
-	private static Pattern intDec = Pattern.compile("^drill down on (.+)$");
-	private static Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
-	private static Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
-	private static Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
+	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
+	private Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
+	private Pattern intDec = Pattern.compile("^drill down on (.+)$");
+	private Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
+	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
+	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
-	private static Pattern boolOR = Pattern.compile("^(.+) or (.+)$");
-	private static Pattern boolAND = Pattern.compile("^(.+) and (.+)$");
-	private static Pattern boolNOT = Pattern.compile("^not (.+)$");
-	private static Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
+	private Pattern boolOR = Pattern.compile("^(.+) or (.+)$");
+	private Pattern boolAND = Pattern.compile("^(.+) and (.+)$");
+	private Pattern boolNOT = Pattern.compile("^not (.+)$");
+	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
 
 	private static Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
-	private static Pattern boolVar = Pattern.compile("^B.+$");
-	private static Pattern intVar = Pattern.compile("^I.+$");
-	private static Pattern charVar = Pattern.compile("^C.+$");
+	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
+	private Pattern boolVar = Pattern.compile("^B.+$");
+	private Pattern intVar = Pattern.compile("^I.+$");
+	private Pattern charVar = Pattern.compile("^C.+$");
 	
-	private static Pattern boolVal = Pattern.compile("^yep$|^nope$");
-	private static Pattern intVal = Pattern.compile("^\\d+$");
-	private static Pattern charVal = Pattern.compile("^[a-zA-Z]$");
+	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
+	private Pattern intVal = Pattern.compile("^\\d+$");
+	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
+	
+	private HashSet<String> ints;
+	private HashSet<String> strings;
+	private HashSet<String> bools;
+	private HashSet<String> chars;
+	
+	Parser(){
+		ints = new HashSet<>();
+		strings = new HashSet<>();
+		bools = new HashSet<>();
+		chars = new HashSet<>();
+	}
 	
 	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
-		for(String arg : args)
-			System.out.println(arg);
-		Scanner in = new Scanner(System.in);
+		Parser parser = new Parser();
+		if (args.length == 0){
+			REPL(parser);
+			return;
+		}
+		String text = readFile(args[0]);
+		String output = "public class " + args[0] + "{\n";
+		if (text == null){
+			System.out.println("Invalid input file File");
+			return;
+		}
+		System.out.println(text);
+		try {
+			output += parser.parseProlog(text);
+			System.out.println(output);
+		}
+		catch (SyntaxError e){
+			System.out.println(e.getMessage());
+		}
+			
+		
+		// Final line
+		output += "\n}";
+    }
+    
+    private static void REPL(Parser parser){
+        Scanner in = new Scanner(System.in);
 		System.out.print(">> ");
 		String input = in.nextLine();
 		while(!input.equals("exit")) {
-			parse(input);
+			parser.parse(input);
 			System.out.print(">> ");
 			input = in.nextLine();
 		}
+
+    }
+    
+    private static String readFile(String filename){
+        try {
+			String text = Files.readString(Paths.get(filename));
+			return text;
+		} catch (IOException e) {
+			return null;
+		}
     }
 	
-	private static void parse(String cmd) {
+	private String parseProlog(String text) throws SyntaxError{
+		Matcher prologMatch = this.prolog.matcher(text);
+		if(!prologMatch .find()){
+			throw new SyntaxError("AHHH");
+		}
+		
+		String functionStart = "";
+		// Check that the correct number of command line arguments was supplied
+		String opening = prologMatch.group();
+		var var = this.var.matcher(opening);
+		int idx = 0;
+
+		String body = "";
+		System.out.println(opening);
+		while(var.find()){
+			String curVar = var.group();
+			System.out.println(curVar);
+			System.out.println(findVarType(curVar));
+			switch (findVarType(curVar)){
+				case BOOL:
+					bools.add(curVar);
+					body += "Boolean " + curVar + " = Boolean.valueOf(args[" + idx+ "]);\n";
+				break;
+				case INT:
+					ints.add(curVar);
+					body += "Integer " + curVar + " = Integer.valueOf(args[" + idx + "]);\n";
+				break;
+				case CHAR:
+					chars.add(curVar);
+					body += "Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n";
+				break;
+				case WRONG:
+					throw new SyntaxError(
+						"We took issue with your addressing of " + curVar + "\n"
+						+ "Your email must be addressed to someone(s) with name(s) starting with B, I, or S.\n"
+						+ "Please do better.\n"
+						+ "Sincerely, the email-team"
+					);
+			}
+			idx++;
+		}
+		/*String var = prologMatch.group(i);
+		
+		 */
+		functionStart += "public static void main(String[] args) {\n";
+		functionStart += "if(args.length < " + var.groupCount() + "){\n";
+		functionStart += "System.out.println(";
+		functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
+		functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
+		functionStart += "}";
+		return functionStart + body + "\n}";
+	}
+	
+	private void parse(String cmd) {
 		Matcher m = sentence.matcher(cmd);
 		boolean match = false;
 
@@ -58,7 +172,6 @@ public class Parser {
 			if (!match) match = parseSubtract(expression);
 			if (!match) match = parseMultiply(expression);
 			if (!match) match = parseDivide(expression);
-
 			if (!match)	System.out.println("Syntax error.");
 		}
 		else {
@@ -66,29 +179,29 @@ public class Parser {
 		}
 	}
 
-	private static boolean varAssign(String expression) {
+	private boolean varAssign(String expression) {
 		Matcher assignment = varAssign.matcher(expression);
 		
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
 			
-			int type = findAssignmentType(var, val);
+			Type type = findAssignmentType(var, val);
 
 			switch(type) {
-				case -1:
+				case WRONG:
 					return false;
 
 				// TODO: Use hashtable or similar to store variables
-				case 0:
+				case BOOL:
 					System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 					break;
 
-				case 1:
+				case INT:
 					System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
 					break;
 
-				case 2:
+				case CHAR:
 					System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 					break;
 			}
@@ -105,31 +218,46 @@ public class Parser {
 	
 		Return Values: -1 for invalid, 0 for bool, 1 for int, 2 for char
 	*/
-	private static int findAssignmentType(String var, String val) {
-
-		Matcher bVar = boolVar.matcher(var);
-		Matcher iVar = intVar.matcher(var);
-		Matcher cVar = charVar.matcher(var);
-		Matcher bVal = boolVal.matcher(val);
-		Matcher iVal = intVal.matcher(val);
-		Matcher cVal = charVal.matcher(val);
-
-		if (bVar.find() && bVal.find()) {
-			return 0;
+	private Type findVarType(String var) {
+		Matcher[] m = {
+			boolVar.matcher(var), 
+			intVar.matcher(var), 
+			charVar.matcher(var)
+		};
+		for(int i = 0; i < m.length; i++){
+			if(m[i].find()){
+				return Type.values()[i];
+			}
 		}
-
-		if (iVar.find() && iVal.find()) {
-			return 1;
+		return Type.WRONG;
+	}
+	
+	private Type findValType(String val){
+		Matcher[] m = {
+			boolVal.matcher(val),
+			intVal.matcher(val), 
+			charVal.matcher(val)
+		};
+		for(int i = 0; i < m.length; i++){
+			if(m[i].find()){
+				return Type.values()[i];
+			}
 		}
-
-		if (cVar.find() && cVal.find()) {
-			return 2;
+		return Type.WRONG;
+	}
+	
+	private Type findAssignmentType(String var, String val) {
+		Type varType = findVarType(var);
+		Type valType = findValType(val);
+		
+		if(varType == valType){
+			return varType;
 		}
-
-		return -1;
+		
+		return Type.WRONG;
 	}
 
-	private static boolean parseEquality(String expression) {
+	private  boolean parseEquality(String expression) {
 		Matcher eqMatcher = equality.matcher(expression);
 
 		if (eqMatcher.find()) {
@@ -155,13 +283,13 @@ public class Parser {
 				 }
 				 else if (cVal2.find()) {
 					System.out.println("Comparing char with char constant. TODO: Check for equality.");
-				 }
+				}
 				 else if (iVal2.find()) {
 					System.out.println("Comparing char with int constant. TODO: Convert char and check for equality.");
-				 }
-				 else if (iVar2.find()) {
+				}
+				else if (iVar2.find()) {
 					System.out.println("Comparing char with int variable. TODO: Convert char and check for equality.");
-				 }
+				}
 			}
 			else {
 				return false;
@@ -173,7 +301,7 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseIncrement(String expression) {
+	private  boolean parseIncrement(String expression) {
 		Matcher inc = intInc.matcher(expression);
 
 		if (inc.find()) {
@@ -201,7 +329,7 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseAdd(String expression) {
+	private  boolean parseAdd(String expression) {
 		Matcher add = intAdd.matcher(expression);
 
 		String out = "";
@@ -283,7 +411,7 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseSubtract(String expression) {
+	private  boolean parseSubtract(String expression) {
 		Matcher sub = intSub.matcher(expression);
 
 		String out = "";
@@ -328,7 +456,7 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseMultiply(String expression) {
+	private  boolean parseMultiply(String expression) {
 		Matcher mult = intMult.matcher(expression);
 
 		String out = "";
@@ -373,7 +501,7 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseDivide(String expression) {
+	private  boolean parseDivide(String expression) {
 		Matcher div = intDiv.matcher(expression);
 
 		String out = "";
@@ -386,7 +514,7 @@ public class Parser {
 			Matcher t2Var = intVar.matcher(term2);
 			Matcher t2Val = intVal.matcher(term2);
 
-						if (t1Var.find()) {
+			if (t1Var.find()) {
 				// TODO: get variable from hashtable
 				out = "Variable with name " + term1 + " divided by ";
 			}
@@ -417,12 +545,12 @@ public class Parser {
 
 		return false;
 	}
-
-	// private static boolean parseConditional(String expression) {
+	
+	// private  boolean parseConditional(String expression) {
 
 	// }
 
-	private static boolean evaluateIntExpression(String expression) {
+	private  boolean evaluateIntExpression(String expression) {
 		Matcher inc = intInc.matcher(expression);
 		Matcher add = intAdd.matcher(expression);
 		Matcher dec = intDec.matcher(expression);
@@ -462,5 +590,11 @@ public class Parser {
 		}
 
 		return true;
+	}
+}
+
+class SyntaxError extends Exception {
+	public SyntaxError(String message){
+		super(message);
 	}
 }
