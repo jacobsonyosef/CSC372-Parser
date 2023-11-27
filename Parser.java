@@ -25,7 +25,7 @@ public class Parser {
 	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
-	private Pattern sentence = Pattern.compile("^(.+)\\.$");
+	private Pattern sentence = Pattern.compile("(.+)(\\.|!)$");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
@@ -88,10 +88,12 @@ public class Parser {
 
 		try {
 			output += parser.parseProlog(text);
-			System.out.println(output); // debugging
-			System.out.println(parser.getBody(text)); // debugging
-		} 
-		catch (SyntaxError e) {
+			System.out.println(output);
+			String body = parser.getBody(text);
+			System.out.println(body);
+			parser.parseBody(body);
+		}
+		catch (SyntaxError e){
 			System.out.println(e.getMessage());
 		}
 		// Final line to end class def
@@ -116,11 +118,25 @@ public class Parser {
         return text;
     }
     
-    private String parseBody(String text){
-        var sentences = sentence.matcher(text);
+    private String parseBody(String text) throws SyntaxError{
+        var sentences = this.sentence.matcher(text);
 		String body = "";
-        // body += 
-        
+		int idx = 0;
+		try {
+			while(sentences.find()){
+				String sentence = sentences.group();
+				System.out.println(sentence.trim());
+				parse(sentence);
+			}
+		}
+		catch(SyntaxError e){
+			throw new SyntaxError(
+				"Hey, sorry to bother you with this but" +
+				" we found the following error in sentence" 
+				+ (idx + 1) + ":" +
+				""
+			);
+		}
         return body;
     }
 
@@ -150,8 +166,9 @@ public class Parser {
 		System.out.println(opening);
 		while(var.find()){
 			String curVar = var.group();
-			System.out.println(curVar);
-			System.out.println(findVarType(curVar));
+			if (curVar == "To whom it may concern,"){
+				break;
+			}
 			switch (findVarType(curVar)){
 				case BOOL:
 					bools.add(curVar);
@@ -179,7 +196,7 @@ public class Parser {
 		
 		 */
 		functionStart += "public static void main(String[] args) {\n";
-		functionStart += "if(args.length < " + var.groupCount() + "){\n";
+		functionStart += "if(args.length != " + (idx) + "){\n";
 		functionStart += "System.out.println(";
 		functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
 		functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
@@ -187,13 +204,12 @@ public class Parser {
 		return functionStart + body + "\n}";
 	}
 	
-	private void parse(String cmd) {
+	private void parse(String cmd) throws SyntaxError {
 		Matcher m = sentence.matcher(cmd);
 		boolean match = false;
-
+		
 		if (m.find()) {
 			String expression = m.group(1);
-
 			match = varAssign(expression);
 			if (!match) match = parseEquality(expression);
 			if (!match) match = parseIncrement(expression);
@@ -206,6 +222,7 @@ public class Parser {
 		}
 		else {
 			System.out.println("Syntax error: missing period.");
+			throw new SyntaxError("Missing period.");
 		}
 	}
 
