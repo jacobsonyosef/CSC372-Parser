@@ -8,13 +8,16 @@ import java.util.Scanner;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.IOException;
+
 public class Parser {
-	enum Type{
+
+	enum Type {
 		BOOL,
 		INT,
 		CHAR,
 		WRONG
 	}
+
 	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
 	private Pattern sentence = Pattern.compile("^(.+)\\.$");
@@ -49,7 +52,7 @@ public class Parser {
 	private HashSet<String> bools;
 	private HashSet<String> chars;
 	
-	Parser(){
+	Parser() {
 		ints = new HashSet<>();
 		strings = new HashSet<>();
 		bools = new HashSet<>();
@@ -59,7 +62,8 @@ public class Parser {
 	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
 		Parser parser = new Parser();
-		if (args.length == 0){
+		if (args.length == 0) {
+			// if no file is supplied, go into command-line mode
 			REPL(parser);
 			return;
 		}
@@ -75,14 +79,17 @@ public class Parser {
 			System.out.println(output);
 			System.out.println(parser.getBody(text));
 		}
-		catch (SyntaxError e){
+		catch (SyntaxError e) {
 			System.out.println(e.getMessage());
 		}
 		// Final line to end class def
 		output += "\n}";
     }
     
-    private static void REPL(Parser parser){
+	/*
+	 * Command-line interactive moee
+	 */
+    private static void REPL(Parser parser) {
         Scanner in = new Scanner(System.in);
 		System.out.print(">> ");
 		String input = in.nextLine();
