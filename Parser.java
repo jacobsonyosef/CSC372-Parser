@@ -16,7 +16,7 @@ public class Parser {
 		WRONG
 	}
 	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
-	private Pattern epilog = Pattern.compile("Best, ^[BICS]([a-zA-Z]+)$");
+	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
 	private Pattern sentence = Pattern.compile("^(.+)\\.$");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
@@ -33,7 +33,7 @@ public class Parser {
 	private Pattern boolNOT = Pattern.compile("^not (.+)$");
 	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
 
-	private static Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
+	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
 	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
 	private Pattern boolVar = Pattern.compile("^B.+$");
@@ -73,13 +73,12 @@ public class Parser {
 		try {
 			output += parser.parseProlog(text);
 			System.out.println(output);
+			System.out.println(parser.getBody(text));
 		}
 		catch (SyntaxError e){
 			System.out.println(e.getMessage());
 		}
-			
-		
-		// Final line
+		// Final line to end class def
 		output += "\n}";
     }
     
@@ -92,8 +91,32 @@ public class Parser {
 			System.out.print(">> ");
 			input = in.nextLine();
 		}
-
     }
+    
+    private String getBody(String text){
+        Matcher pm = prolog.matcher(text);
+        Matcher em = epilog.matcher(text);
+        String p = "";
+        String e = "";
+        if(pm.find()){
+            p = pm.group();
+        }
+        if(em.find()){
+            e = em.group();
+        }
+        text = text.substring(p.length(), text.length() - 1);
+        text = text.substring(0, text.length() - e.length());
+        return text;
+    }
+    
+    private String parseBody(String text){
+        var sentences = sentence.matcher(text);
+		String body = "";
+        body += 
+        
+        return body;
+    }
+
     
     private static String readFile(String filename){
         try {
@@ -278,13 +301,13 @@ public class Parser {
 			else if (cVar1.find() || cVal1.find()) {
 				// char c = (cVar1.find()) ? value of variable with name cVar1 : expr2.charAt(0);
 
-				 if (cVar2.find()) {
+				if (cVar2.find()) {
 					System.out.println("Comparing char with char variable. TODO: Check for equality.");
-				 }
-				 else if (cVal2.find()) {
+				}
+				else if (cVal2.find()) {
 					System.out.println("Comparing char with char constant. TODO: Check for equality.");
 				}
-				 else if (iVal2.find()) {
+				else if (iVal2.find()) {
 					System.out.println("Comparing char with int constant. TODO: Convert char and check for equality.");
 				}
 				else if (iVar2.find()) {
@@ -374,16 +397,17 @@ public class Parser {
 		return false;
 	}
 
-	private static boolean parseLoop(String expr) {
-		Matcher loop = new loop.matcher(expression);
+	private boolean parseLoop(String expr) {
+		Matcher loop = this.loop.matcher(expr);
 
 		if (loop.find()) {
 			String argument = loop.group(1);
-			Matcher boolStmt = 
+			//Matcher boolStmt = 
 		}
+		return true;
 	}
 
-	private static boolean parseDecrement(String expression) {
+	private boolean parseDecrement(String expression) {
 		Matcher dec = intDec.matcher(expression);
 
 		if (dec.find()) {
