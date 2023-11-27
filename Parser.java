@@ -1,7 +1,7 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
-import java.util.HashMap;
+
 public class Parser {
 	private static Pattern sentence = Pattern.compile("^(.+)\\.$");
 	private static Pattern equality = Pattern.compile("^(.+) says (.+)$");
@@ -18,6 +18,8 @@ public class Parser {
 	private static Pattern boolAND = Pattern.compile("^(.+) and (.+)$");
 	private static Pattern boolNOT = Pattern.compile("^not (.+)$");
 	private static Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
+
+	private static Pattern whileLoop = Pattern.compile("^Keep (.+) in the loop, regarding: (.+).");
 	
 	private static Pattern boolVar = Pattern.compile("^B.+$");
 	private static Pattern intVar = Pattern.compile("^I.+$");
@@ -26,8 +28,6 @@ public class Parser {
 	private static Pattern boolVal = Pattern.compile("^yep$|^nope$");
 	private static Pattern intVal = Pattern.compile("^\\d+$");
 	private static Pattern charVal = Pattern.compile("^[a-zA-Z]$");
-	
-	private static HashMap<String, Integer> IntC
 	
 	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
