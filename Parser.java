@@ -62,23 +62,30 @@ public class Parser {
 	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
 		Parser parser = new Parser();
+
 		if (args.length == 0) {
 			// if no file is supplied, go into command-line mode
 			REPL(parser);
 			return;
 		}
+
 		String text = readFile(args[0]);
-		String output = "public class " + args[0] + "{\n";
-		if (text == null){
-			System.out.println("Invalid input file File");
+		// class name is file name
+		String output = "public class " + args[0].substring(0,args[0].length()-6) + "{\n";
+
+		if (text == null) {
+			// prints file name -- BUG?
+			System.out.println("Invalid input file " + args[0]);
 			return;
 		}
-		System.out.println(text);
+
+		System.out.println(text); // for debugging purposes
+
 		try {
 			output += parser.parseProlog(text);
-			System.out.println(output);
-			System.out.println(parser.getBody(text));
-		}
+			System.out.println(output); // debugging
+			System.out.println(parser.getBody(text)); // debugging
+		} 
 		catch (SyntaxError e) {
 			System.out.println(e.getMessage());
 		}
