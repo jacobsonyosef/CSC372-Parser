@@ -26,6 +26,7 @@ public class Parser {
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
+	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
@@ -229,6 +230,7 @@ public class Parser {
 			String expression = m.group();
 			System.out.println(expression);
 			match = varAssign(expression);
+			
 			if (!match) match = parseLoop(expression);
 			if (!match) match = parseEquality(expression);
 			if (!match) match = parseIncrement(expression);
@@ -253,12 +255,14 @@ public class Parser {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
 
-			System.out.println("Printing beginning here:");
-			System.out.println(assignment.group(1));
-			System.out.println(assignment.group(2));
-
+			// for debugging purposes:
+			// System.out.println("Printing beginning here:");
+			// System.out.println(assignment.group(1));
+			// System.out.println(assignment.group(2));
 			
 			Type type = findAssignmentType(var, val);
+
+			System.out.println(type);
 
 			switch(type) {
 				case WRONG:
@@ -320,7 +324,7 @@ public class Parser {
 		return Type.WRONG;
 	}
 
-	private  boolean parseEquality(String expression) {
+	private boolean parseEquality(String expression) {
 		Matcher eqMatcher = equality.matcher(expression);
 
 		if (eqMatcher.find()) {
@@ -364,7 +368,7 @@ public class Parser {
 		return false;
 	}
 
-	private  boolean parseIncrement(String expression) {
+	private boolean parseIncrement(String expression) {
 		Matcher inc = intInc.matcher(expression);
 
 		if (inc.find()) {
@@ -392,7 +396,7 @@ public class Parser {
 		return false;
 	}
 
-	private  boolean parseAdd(String expression) {
+	private boolean parseAdd(String expression) {
 		Matcher add = intAdd.matcher(expression);
 
 		String out = "";
@@ -475,7 +479,7 @@ public class Parser {
 		return false;
 	}
 
-	private  boolean parseSubtract(String expression) {
+	private boolean parseSubtract(String expression) {
 		Matcher sub = intSub.matcher(expression);
 
 		String out = "";
@@ -520,7 +524,7 @@ public class Parser {
 		return false;
 	}
 
-	private  boolean parseMultiply(String expression) {
+	private boolean parseMultiply(String expression) {
 		Matcher mult = intMult.matcher(expression);
 
 		String out = "";
@@ -565,7 +569,7 @@ public class Parser {
 		return false;
 	}
 
-	private  boolean parseDivide(String expression) {
+	private boolean parseDivide(String expression) {
 		Matcher div = intDiv.matcher(expression);
 
 		String out = "";
