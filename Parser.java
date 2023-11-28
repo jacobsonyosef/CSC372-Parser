@@ -22,6 +22,8 @@ public class Parser {
 	// declaring a new function for parser
 	// Subject: Names...
 	private static Pattern removeWriteSpace = Pattern.compile(".+");
+	private String javaFile;
+
 	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
@@ -58,48 +60,46 @@ public class Parser {
 	private HashSet<String> bools;
 	private HashSet<String> chars;
 	
-	Parser() {
+	Parser(String filename) {
 		ints = new HashSet<>();
 		strings = new HashSet<>();
 		bools = new HashSet<>();
 		chars = new HashSet<>();
-	}
-	
-	// main() code adapted from Parser.java from the class resources
-	public static void main (String[] args) {
-		Parser parser = new Parser();
+		String text = readFile(filename);
 
-		if (args.length == 0) {
-			// if no file is supplied, return
-			System.out.println("Please input a file name.");
-			return;
-		}
-
-		String text = readFile(args[0]);
 		// class name is file name
-		String output = "public class " + args[0].substring(0,args[0].length()-6) + "{\n";
+		javaFile =  "public class " + filename.substring(0,filename.length()-6) + "{\n";
 
 		if (text == null) {
 			// prints file name -- BUG?
-			System.out.println("Invalid input file " + args[0]);
+			System.out.println("Invalid input file " + filename);
 			return;
 		}
 
 		System.out.println(text); // for debugging purposes
 
 		try {
-			output += parser.parseProlog(text);
-			System.out.println(output); // for debugging
-			String body = parser.getBody(text);
+			javaFile += parseProlog(text);
+			System.out.println(javaFile); // for debugging
+			String body = getBody(text);
 			System.out.println(body); // for debugging
-			parser.parseBody(body);
-			
+			parseBody(body);
 		}
 		catch (SyntaxError e){
 			System.out.println(e.getMessage());
 		}
 		// Final line to end class def
-		output += "\n}";
+		javaFile += "\n}";
+	}
+	
+	// main() code adapted from Parser.java from the class resources
+	public static void main (String[] args) {
+		if (args.length == 0) {
+			// if no file is supplied, return
+			System.out.println("Please input a file name.");
+			return;
+		}
+		Parser parser = new Parser(args[0]);
     }
     
 	/*
@@ -230,7 +230,7 @@ public class Parser {
 			String expression = m.group();
 			System.out.println(expression);
 			match = varAssign(expression);
-			
+
 			if (!match) match = parseLoop(expression);
 			if (!match) match = parseEquality(expression);
 			if (!match) match = parseIncrement(expression);
@@ -262,21 +262,25 @@ public class Parser {
 			
 			Type type = findAssignmentType(var, val);
 
-			System.out.println(type);
+			// System.out.println(type); // DEBUGGING
 
+			// add declaration and assignment to output file
 			switch(type) {
 				case WRONG:
 					return false;
-				// TODO: Use hashtable or similar to store variables
+
 				case BOOL:
+					bools.add(var);
 					System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 					break;
 
 				case INT:
+					ints.add(var);
 					System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
 					break;
 
 				case CHAR:
+					chars.add(var);
 					System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 					break;
 			}
