@@ -21,11 +21,11 @@ public class Parser {
 	// managing scope in functions?
 	// declaring a new function for parser
 	// Subject: Names...
-
-	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+),)+|To whom it may concern,)");
+	private static Pattern removeWriteSpace = Pattern.compile(".+");
+	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
-	private Pattern sentence = Pattern.compile("(.+)(\\.|!)$");
+	private Pattern sentence = Pattern.compile(".+?(!|\\.)");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
@@ -91,6 +91,7 @@ public class Parser {
 			String body = parser.getBody(text);
 			System.out.println(body);
 			parser.parseBody(body);
+			
 		}
 		catch (SyntaxError e){
 			System.out.println(e.getMessage());
@@ -118,14 +119,15 @@ public class Parser {
     }
     
     private String parseBody(String text) throws SyntaxError{
-        var sentences = this.sentence.matcher(text);
+        var matcher = this.sentence.matcher(text);
 		String body = "";
+		System.out.println(text);
 		int idx = 0;
 		try {
-			while(sentences.find()){
-				String sentence = sentences.group();
-				System.out.println(sentence.trim());
-				parse(sentence);
+			while(matcher.find()){
+				String s = matcher.group();
+				System.out.println(s.trim());
+				parse(s);
 			}
 		}
 		catch(SyntaxError e){
@@ -145,7 +147,13 @@ public class Parser {
     private static String readFile(String filename){
         try {
 			String text = Files.readString(Paths.get(filename));
-			return text;
+			Matcher m = removeWriteSpace.matcher(text);
+			String t = "";
+			while(m.find()){
+				t += m.group().trim() + " ";
+			}
+			System.out.println(t);
+			return t;
 		} catch (IOException e) {
 			return null;
 		}
