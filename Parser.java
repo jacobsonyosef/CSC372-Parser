@@ -140,7 +140,9 @@ public class Parser {
         return body;
     }
 
-    
+    /*
+	 * Read the file into a string.
+	 */
     private static String readFile(String filename){
         try {
 			String text = Files.readString(Paths.get(filename));
@@ -151,24 +153,29 @@ public class Parser {
     }
 	
 	private String parseProlog(String text) throws SyntaxError{
-		Matcher prologMatch = this.prolog.matcher(text);
-		if(!prologMatch .find()){
+		Matcher prologMatch = prolog.matcher(text);
+
+		// No match found... throw error
+		if(!prologMatch.find()){
 			throw new SyntaxError("AHHH");
 		}
 		
 		String functionStart = "";
 		// Check that the correct number of command line arguments was supplied
 		String opening = prologMatch.group();
-		var var = this.var.matcher(opening);
+		var var = this.var.matcher(opening); // get individual variable names from comma-separated list
 		int idx = 0;
 
 		String body = "";
-		System.out.println(opening);
+		System.out.println(opening); // debugging
+
 		while(var.find()){
 			String curVar = var.group();
+
 			if (curVar == "To whom it may concern,"){
 				break;
 			}
+
 			switch (findVarType(curVar)){
 				case BOOL:
 					bools.add(curVar);
@@ -185,16 +192,14 @@ public class Parser {
 				case WRONG:
 					throw new SyntaxError(
 						"We took issue with your addressing of " + curVar + "\n"
-						+ "Your email must be addressed to someone(s) with name(s) starting with B, I, or S.\n"
+						+ "Your email must be addressed to person(s) with name(s) starting with B, I, or S.\n"
 						+ "Please do better.\n"
-						+ "Sincerely, the email-team"
+						+ "Sincerely, the email-team."
 					);
 			}
 			idx++;
 		}
-		/*String var = prologMatch.group(i);
-		
-		 */
+
 		functionStart += "public static void main(String[] args) {\n";
 		functionStart += "if(args.length != " + (idx) + "){\n";
 		functionStart += "System.out.println(";
