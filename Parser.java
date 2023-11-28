@@ -26,7 +26,7 @@ public class Parser {
 
 	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
 	// change epilog?
-	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
+	private Pattern epilog = Pattern.compile("(Best, ([BICS]([a-zA-Z]+)) )$");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
@@ -113,7 +113,7 @@ public class Parser {
 
         if(pm.find()) p = pm.group();
         if(em.find()) e = em.group();
-
+		System.out.println(e);
 		// substract out prologue and epilogue to get body of text
         text = text.substring(p.length(), text.length() - 1);
         text = text.substring(0, text.length() - e.length());
