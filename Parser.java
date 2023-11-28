@@ -150,7 +150,7 @@ public class Parser {
     private static String readFile(String filename){
         try {
 			String text = Files.readString(Paths.get(filename));
-			Matcher m = removeWriteSpace.matcher(text);
+			Matcher m = removeWhiteSpace.matcher(text);
 			String t = "";
 			while(m.find()){
 				t += m.group().trim() + " ";
