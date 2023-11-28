@@ -21,7 +21,7 @@ public class Parser {
 	// managing scope in functions?
 	// declaring a new function for parser
 	// Subject: Names...
-	private static Pattern removeWriteSpace = Pattern.compile(".+");
+	private static Pattern removeWhiteSpace = Pattern.compile(".+");
 	private String javaFile;
 
 	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
