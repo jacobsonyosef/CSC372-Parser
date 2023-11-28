@@ -25,7 +25,8 @@ public class Parser {
 	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
-	private Pattern sentence = Pattern.compile(".+?(!|\\.)");
+	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
+	private Pattern statement = Pattern.compile("(.+)[^.!]");
 	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
@@ -87,9 +88,9 @@ public class Parser {
 
 		try {
 			output += parser.parseProlog(text);
-			System.out.println(output);
+			System.out.println(output); // for debugging
 			String body = parser.getBody(text);
-			System.out.println(body);
+			System.out.println(body); // for debugging
 			parser.parseBody(body);
 			
 		}
@@ -115,19 +116,20 @@ public class Parser {
 		// substract out prologue and epilogue to get body of text
         text = text.substring(p.length(), text.length() - 1);
         text = text.substring(0, text.length() - e.length());
+
         return text;
     }
     
-    private String parseBody(String text) throws SyntaxError{
-        var matcher = this.sentence.matcher(text);
+    private String parseBody(String text) throws SyntaxError {
+        var sentences = this.sentence.matcher(text);
 		String body = "";
 		System.out.println(text);
 		int idx = 0;
 		try {
-			while(matcher.find()){
-				String s = matcher.group();
-				System.out.println(s.trim());
-				parse(s);
+			while(sentences.find()) {
+				String sentence = sentences.group();
+				System.out.println(sentence.trim()); // debugging
+				parse(sentence);
 			}
 		}
 		catch(SyntaxError e){
@@ -159,6 +161,9 @@ public class Parser {
 		}
     }
 	
+	/*
+	 * transpile the prologue.
+	 */
 	private String parseProlog(String text) throws SyntaxError{
 		Matcher prologMatch = prolog.matcher(text);
 
@@ -217,11 +222,12 @@ public class Parser {
 	}
 	
 	private void parse(String cmd) throws SyntaxError {
-		Matcher m = sentence.matcher(cmd);
+		Matcher m = statement.matcher(cmd);
 		boolean match = false;
 		
 		if (m.find()) {
-			String expression = m.group(1);
+			String expression = m.group();
+			System.out.println(expression);
 			match = varAssign(expression);
 			if (!match) match = parseLoop(expression);
 			if (!match) match = parseEquality(expression);
@@ -241,10 +247,16 @@ public class Parser {
 
 	private boolean varAssign(String expression) {
 		Matcher assignment = varAssign.matcher(expression);
+
 		
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
+
+			System.out.println("Printing beginning here:");
+			System.out.println(assignment.group(1));
+			System.out.println(assignment.group(2));
+
 			
 			Type type = findAssignmentType(var, val);
 
@@ -283,25 +295,19 @@ public class Parser {
 			intVar.matcher(var), 
 			charVar.matcher(var)
 		};
-		for(int i = 0; i < m.length; i++){
-			if(m[i].find()){
-				return Type.values()[i];
-			}
-		}
+		for(int i = 0; i < m.length; i++)
+			if(m[i].find()) return Type.values()[i];
 		return Type.WRONG;
 	}
 	
-	private Type findValType(String val){
+	private Type findValType(String val) {
 		Matcher[] m = {
 			boolVal.matcher(val),
 			intVal.matcher(val), 
 			charVal.matcher(val)
 		};
-		for(int i = 0; i < m.length; i++){
-			if(m[i].find()){
-				return Type.values()[i];
-			}
-		}
+		for(int i = 0; i < m.length; i++)
+			if(m[i].find()) return Type.values()[i];
 		return Type.WRONG;
 	}
 	
@@ -309,9 +315,7 @@ public class Parser {
 		Type varType = findVarType(var);
 		Type valType = findValType(val);
 		
-		if(varType == valType){
-			return varType;
-		}
+		if(varType == valType) return varType;
 		
 		return Type.WRONG;
 	}
@@ -654,7 +658,7 @@ public class Parser {
 }
 
 class SyntaxError extends Exception {
-	public SyntaxError(String message){
+	public SyntaxError(String message) {
 		super(message);
 	}
 }
