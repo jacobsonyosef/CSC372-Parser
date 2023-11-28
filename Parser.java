@@ -22,7 +22,7 @@ public class Parser {
 	// declaring a new function for parser
 	// Subject: Names...
 
-	private Pattern prolog = Pattern.compile("^(Dear)( [BICS]([a-zA-Z]+),)+");
+	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+),)+|To whom it may concern,)");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("((Best,) ([BICS]([a-zA-Z]+)))$");
 	private Pattern sentence = Pattern.compile("(.+)(\\.|!)$");
@@ -40,7 +40,6 @@ public class Parser {
 	private Pattern boolAND = Pattern.compile("^(.+) and (.+)$");
 	private Pattern boolNOT = Pattern.compile("^not (.+)$");
 	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
-
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
 	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
@@ -216,6 +215,7 @@ public class Parser {
 		if (m.find()) {
 			String expression = m.group(1);
 			match = varAssign(expression);
+			if (!match) match = parseLoop(expression);
 			if (!match) match = parseEquality(expression);
 			if (!match) match = parseIncrement(expression);
 			if (!match) match = parseAdd(expression);
@@ -243,7 +243,6 @@ public class Parser {
 			switch(type) {
 				case WRONG:
 					return false;
-
 				// TODO: Use hashtable or similar to store variables
 				case BOOL:
 					System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
