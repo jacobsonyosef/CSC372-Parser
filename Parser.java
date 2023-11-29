@@ -84,6 +84,7 @@ public class Parser {
 			String body = getBody(text);
 			System.out.println(body); // for debugging
 			parseBody(body);
+			// javaFile += parseEpilog(text);
 		}
 		catch (SyntaxError e){
 			System.out.println(e.getMessage());
@@ -270,18 +271,30 @@ public class Parser {
 					return false;
 
 				case BOOL:
-					bools.add(var);
-					System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
+					if (bools.contains(var)) javaFile += var + " = " + val + ";\n";
+					else {
+						bools.add(var);
+						javaFile += "boolean " + var + " = " + val + ";\n";
+						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
+					}
 					break;
 
 				case INT:
-					ints.add(var);
-					System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
+					if (ints.contains(var)) javaFile += var + " = " + val + ";\n";
+					else {
+						ints.add(var);
+						javaFile += "int " + var + " = " + val + ";\n";
+						System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
+					}
 					break;
 
 				case CHAR:
-					chars.add(var);
-					System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
+					if (chars.contains(var)) javaFile += var + " = " + val + ";\n";
+					else {
+						chars.add(var);
+						javaFile += "char " + var + " = " + val + ";\n";
+						System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
+					}
 					break;
 			}
 
@@ -291,7 +304,7 @@ public class Parser {
 		return false;
 	}
 	
-	/*	
+	/*
 		Given the left (var) and right (val) sides of an assignment statement,
 		determines the type of assignment performed.
 	
