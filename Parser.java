@@ -130,7 +130,7 @@ public class Parser {
 			while(sentences.find()) {
 				String sentence = sentences.group();
 				System.out.println(sentence.trim()); // debugging
-				parse(sentence);
+				parseSentence(sentence);
 			}
 		}
 		catch(SyntaxError e){
@@ -145,8 +145,8 @@ public class Parser {
     }
 
     /*
-	 * Read the file into a string.
-	 */
+	* Read the file into a string.
+	*/
     private static String readFile(String filename){
         try {
 			String text = Files.readString(Paths.get(filename));
@@ -222,7 +222,7 @@ public class Parser {
 		return functionStart + body + "\n}";
 	}
 	
-	private void parse(String cmd) throws SyntaxError {
+	private void parseSentence(String cmd) throws SyntaxError {
 		Matcher m = statement.matcher(cmd);
 		boolean match = false;
 		
