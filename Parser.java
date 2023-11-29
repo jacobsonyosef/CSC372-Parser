@@ -76,13 +76,13 @@ public class Parser {
 			return;
 		}
 
-		System.out.println(text); // for debugging purposes
+		// System.out.println(text); // for debugging purposes
 
 		try {
 			javaFile += parseProlog(text);
-			System.out.println(javaFile); // for debugging
+			// System.out.println(javaFile); // for debugging
 			String body = getBody(text);
-			System.out.println(body); // for debugging
+			// System.out.println(body); // for debugging
 			parseBody(body);
 			// javaFile += parseEpilog(text);
 		}
@@ -91,6 +91,8 @@ public class Parser {
 		}
 		// Final line to end class def
 		javaFile += "\n}";
+
+		System.out.println(javaFile);
 	}
 	
 	// main() code adapted from Parser.java from the class resources
@@ -130,7 +132,8 @@ public class Parser {
 		try {
 			while(sentences.find()) {
 				String sentence = sentences.group();
-				System.out.println(sentence.trim()); // debugging
+				sentence = sentence.trim();
+				// System.out.println(sentence.trim()); // debugging
 				parseSentence(sentence);
 			}
 		}
@@ -156,7 +159,7 @@ public class Parser {
 			while(m.find()){
 				t += m.group().trim() + " ";
 			}
-			System.out.println(t);
+			// System.out.println(t); // debugging 
 			return t;
 		} catch (IOException e) {
 			return null;
@@ -229,6 +232,7 @@ public class Parser {
 		
 		if (m.find()) {
 			String expression = m.group();
+
 			System.out.println(expression);
 			match = varAssign(expression);
 
@@ -248,22 +252,19 @@ public class Parser {
 		}
 	}
 
+	private String toBool(String val) {
+		if (val.equals("yep")) return "true";
+		else return "false";
+	}
+
 	private boolean varAssign(String expression) {
 		Matcher assignment = varAssign.matcher(expression);
 
-		
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
-
-			// for debugging purposes:
-			// System.out.println("Printing beginning here:");
-			// System.out.println(assignment.group(1));
-			// System.out.println(assignment.group(2));
 			
 			Type type = findAssignmentType(var, val);
-
-			// System.out.println(type); // DEBUGGING
 
 			// add declaration and assignment to output file
 			switch(type) {
@@ -271,10 +272,11 @@ public class Parser {
 					return false;
 
 				case BOOL:
-					if (bools.contains(var)) javaFile += var + " = " + val + ";\n";
+					String mappedVal = toBool(val);
+					if (bools.contains(var)) javaFile += var + " = " + mappedVal + ";\n";
 					else {
 						bools.add(var);
-						javaFile += "boolean " + var + " = " + val + ";\n";
+						javaFile += "boolean " + var + " = " + mappedVal + ";\n";
 						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 					}
 					break;
@@ -289,10 +291,10 @@ public class Parser {
 					break;
 
 				case CHAR:
-					if (chars.contains(var)) javaFile += var + " = " + val + ";\n";
+					if (chars.contains(var)) javaFile += var + " = " + "'" + val + "'" + ";\n";
 					else {
 						chars.add(var);
-						javaFile += "char " + var + " = " + val + ";\n";
+						javaFile += "char " + var + " = " + "'" + val + "'" + ";\n";
 						System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 					}
 					break;
