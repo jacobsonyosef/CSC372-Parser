@@ -24,38 +24,40 @@ public class Parser {
 	private static Pattern removeWhiteSpace = Pattern.compile(".+");
 	private String javaFile;
 
-	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
+	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+ | ^To whom it may concern, )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("(Best, ([BICS]([a-zA-Z]+)) )$");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
-	private Pattern equality = Pattern.compile("^(.+) says (.+)\\.");
-	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
+	private Pattern equality = Pattern.compile("(.+) says (.+)\\.");
+	private Pattern varAssign = Pattern.compile("([a-zA-Z]+) said (.+)");
 	
-	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
-	private Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
-	private Pattern intDec = Pattern.compile("^drill down on (.+)$");
-	private Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
-	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
-	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
+	// private Pattern int_expr_1 = Pattern.compile("(.+) piggybacking off of (.+)");
+	private Pattern int_expr_1 = Pattern.compile("piggybacking off of (.+)");
+	// private Pattern intDec = Pattern.compile("drill down on (.+)");
+	private Pattern int_expr_2 = Pattern.compile("(.+) drill down on (.+)");
+	private Pattern int_expr1_1 = Pattern.compile("(.+) joins forces with (.+)");
+	private Pattern int_expr1_2 = Pattern.compile("(.+) leverages (.+)");
 	
-	private Pattern bool_expr1 = Pattern.compile("^(.+) or (.+)$"); // OR
-	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
-	private Pattern bool_expr3= Pattern.compile("^not (.+)$"); // NOT
-	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)$"); // NOT
+	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
+	private Pattern bool_expr2 = Pattern.compile("(.+) and (.+)"); // AND
+	private Pattern bool_expr3= Pattern.compile("not (.+)"); // NOT
+	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)"); // NOT
 
-	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
-	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
+	private Pattern conditional = Pattern.compile("Suppose (.+), then (.+); otherwise, (.+)");
+	private Pattern loop = Pattern.compile("Keep (.+) in the loop regarding: (.+)");
 	
 	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
-	private Pattern boolVar = Pattern.compile("^B.+$");
-	private Pattern intVar = Pattern.compile("^I.+$");
-	private Pattern charVar = Pattern.compile("^C.+$");
-	
-	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
-	private Pattern intVal = Pattern.compile("^\\d+$");
-	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
+
+	private Pattern boolVar = Pattern.compile("B.+");
+	private Pattern boolVal = Pattern.compile("yep | nope ");
+
+	private Pattern intVar = Pattern.compile("I.+");
+	private Pattern intVal = Pattern.compile("\\d+");
+
+	private Pattern charVar = Pattern.compile("C.+");
+	private Pattern charVal = Pattern.compile("[a-zA-Z]");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
@@ -332,7 +334,12 @@ public class Parser {
 	}
 
 	private String int_expr(String expr) {
+		String out = "";
+		Matcher m = int_expr_1.matcher(expr);
 
+		if (m.find()) {
+
+		}
 	}
 
 	private String char_expr(String expr) {
@@ -384,6 +391,7 @@ public class Parser {
 		
 	
 	}
+
 	private boolean parseEquality(String expression) {
 		Matcher eqMatcher = equality.matcher(expression);
 		System.out.println(expression); // debugging
@@ -683,7 +691,7 @@ public class Parser {
 
 	// }
 
-	private  boolean evaluateIntExpression(String expression) {
+	private boolean evaluateIntExpression(String expression) {
 		Matcher inc = intInc.matcher(expression);
 		Matcher add = intAdd.matcher(expression);
 		Matcher dec = intDec.matcher(expression);
