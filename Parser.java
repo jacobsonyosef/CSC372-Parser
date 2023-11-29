@@ -146,7 +146,7 @@ public class Parser {
 				"Hey, sorry to bother you with this but" +
 				" we found the following error in sentence" 
 				+ (idx + 1) + ":" +
-				""
+				e.getMessage()
 			);
 		}
         return body;
@@ -310,7 +310,9 @@ public class Parser {
 
 		return false;
 	}
-
+	
+	
+	private bool_expr_helper(Pattern p, String op, )
 	private String bool_expr(String expr) {
 		
 	}
@@ -320,13 +322,27 @@ public class Parser {
 		if(m.find()){
 			String expr1 = m.group(1);
 			String expr2 = m.group(2);
-			out += bool_expr1(expr1) + bool_expr2(expr2);
+			out += "(" + bool_expr1(expr1) + " || " + bool_expr2(expr2) + ")";
 			
 		}
 		else {
-			bool_expr2(expr)
+			out = bool_expr2(expr);
 		}
-		
+		return out;
+	}
+	private String bool_expr2(String expr1){
+		String out = "";
+		Matcher m  = bool_expr1.matcher(expr1);
+		if(m.find()){
+			String expr1 = m.group(1);
+			String expr2 = m.group(2);
+			out += "(" + bool_expr1(expr1) + " || " + bool_expr2(expr2) + ")";
+			
+		}
+		else {
+			out = bool_expr2(expr);
+		}
+		return out;
 	}
 
 	private String comp(String expr) {
