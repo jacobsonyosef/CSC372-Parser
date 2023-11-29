@@ -40,9 +40,11 @@ public class Parser {
 	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
 	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
-	private Pattern boolOR = Pattern.compile("^(.+) or (.+)$");
-	private Pattern boolAND = Pattern.compile("^(.+) and (.+)$");
-	private Pattern boolNOT = Pattern.compile("^not (.+)$");
+	private Pattern bool_expr1 = Pattern.compile("^(.+) or (.+)$"); // OR
+	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
+	private Pattern bool_expr3 = Pattern.compile("(^not (.+)$ | (.+))"); // NOT
+	private Pattern bool_expr4 = 8008
+
 	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
@@ -307,6 +309,10 @@ public class Parser {
 	}
 
 	private String bool_expr(String expr) {
+		
+	}
+
+	private String comp(String expr) {
 
 	}
 
@@ -319,7 +325,7 @@ public class Parser {
 	}
 
 	private String string_expr(String expr) {
-		
+
 	}
 	
 	/*
