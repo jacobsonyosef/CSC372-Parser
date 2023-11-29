@@ -30,7 +30,7 @@ public class Parser {
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
-	private Pattern equality = Pattern.compile("^(.+) says (.+)$");
+	private Pattern equality = Pattern.compile("^(.+) says (.+)\\.");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
 	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
@@ -305,6 +305,22 @@ public class Parser {
 
 		return false;
 	}
+
+	private String bool_expr(String expr) {
+
+	}
+
+	private String int_expr(String expr) {
+
+	}
+
+	private String char_expr(String expr) {
+
+	}
+
+	private String string_expr(String expr) {
+		
+	}
 	
 	/*
 		Given the left (var) and right (val) sides of an assignment statement,
@@ -345,6 +361,7 @@ public class Parser {
 
 	private boolean parseEquality(String expression) {
 		Matcher eqMatcher = equality.matcher(expression);
+		System.out.println(expression); // debugging
 
 		if (eqMatcher.find()) {
 			String expr1 = eqMatcher.group(1);
@@ -357,6 +374,10 @@ public class Parser {
 
 			Matcher iVar2 = intVar.matcher(expr2);
 			Matcher iVal2 = intVal.matcher(expr2);
+
+			System.out.println("expr1: " + expr1);
+			System.out.println("expr2: " + expr2);
+	
 
 			if (evaluateIntExpression(expr1) && evaluateIntExpression(expr2)) {
 				System.out.println("Successfully evaluated both expressions as int expressions. TODO: Save return values and compare for equality.");
