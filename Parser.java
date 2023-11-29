@@ -51,10 +51,13 @@ public class Parser {
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) greater than (.+)|(.+) less than (.+))");
-
-	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
+	private Pattern loop_start = Pattern.compile("^Suppose (.+):");
+	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
+	
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
+	
+	private Pattern print = Pattern.compile("[hH]{1}ighlight (.+)");
 	
 	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
 	private Pattern boolVar = Pattern.compile("^B.+$");
@@ -289,7 +292,8 @@ public class Parser {
 			if(match.length() >  0) return match;
 			match = loop(expression);
 			if(match.length() > 0) return match;
-			// if (!match) match = parseLoop(expression);
+			match = print(expression);
+			if (match.length() >  0) return match;
 			// if (!match) match = parseEquality(expression);
 			// if (!match) match = parseIncrement(expression);
 			// if (!match) match = parseAdd(expression);
@@ -309,6 +313,15 @@ public class Parser {
 		if (val.equals("yep")) return "true";
 		else if(val.equals("nope")) return "false";
 		else return val;
+	}
+
+	private String print(String p) throws SyntaxError{
+		Matcher m = print.matcher(p);
+		if(!m.find())
+			return "";
+		String expr = m.group(1);
+		String toString = evalExpr(expr);
+		return "System.out.println(" + toString + ");\n";
 	}
 
 	private String varAssign(String expression) throws SyntaxError {
@@ -355,6 +368,22 @@ public class Parser {
 
 		return "";
 	}
+	
+	private String evalExpr(String expr) throws SyntaxError{
+		try {
+			return parseIntExpr(expr);
+		}
+		catch(SyntaxError e){}
+		try {
+			return parseBoolExpr(expr);
+		}
+		catch (SyntaxError e) {
+			throw new SyntaxError(
+				"Expration?"
+			);
+		}
+	}
+	
 	
 	private String condition(String cond) throws SyntaxError{
 		Matcher m = conditional.matcher(cond);
