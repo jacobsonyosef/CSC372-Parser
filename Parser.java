@@ -2,6 +2,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
 import java.util.HashSet;
+import java.util.HashTable;
 import java.io.File;
 import java.io.FileNotFoundException; 
 import java.util.Scanner; 
@@ -24,51 +25,75 @@ public class Parser {
 	private static Pattern removeWhiteSpace = Pattern.compile(".+");
 	private String javaFile;
 
-	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+ | ^To whom it may concern, )");
+	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("(Best, ([BICS]([a-zA-Z]+)) )$");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
-	private Pattern equality = Pattern.compile("(.+) says (.+)\\.");
-	private Pattern varAssign = Pattern.compile("([a-zA-Z]+) said (.+)");
+	private Pattern equality = Pattern.compile("^(.+) says (.+)\\.");
+	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
-	// private Pattern int_expr_1 = Pattern.compile("(.+) piggybacking off of (.+)");
-	private Pattern int_expr_1 = Pattern.compile("piggybacking off of (.+)");
-	// private Pattern intDec = Pattern.compile("drill down on (.+)");
-	private Pattern int_expr_2 = Pattern.compile("(.+) drill down on (.+)");
-	private Pattern int_expr1_1 = Pattern.compile("(.+) joins forces with (.+)");
-	private Pattern int_expr1_2 = Pattern.compile("(.+) leverages (.+)");
+	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
+	private Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
+	private Pattern intDec = Pattern.compile("^drill down on (.+)$");
+	private Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
+	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
+	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
-	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
-	private Pattern bool_expr2 = Pattern.compile("(.+) and (.+)"); // AND
-	private Pattern bool_expr3= Pattern.compile("not (.+)"); // NOT
-	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)"); // NOT
+	private Pattern bool_expr1 = Pattern.compile("^(.+) or (.+)$"); // OR
+	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
+	private Pattern bool_expr3= Pattern.compile("^not (.+)$"); // NOT
+	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)$"); // NOT
 
-	private Pattern conditional = Pattern.compile("Suppose (.+), then (.+); otherwise, (.+)");
-	private Pattern loop = Pattern.compile("Keep (.+) in the loop regarding: (.+)");
+	// | <str_expr> is on the same page as <str_expr>
+	// | <char_expr> is on the same page <char_expr> 
+	// | <int_expr> greater than <int_expr> 
+	// | <str_expr> greater than <str_expr> 
+	//| <char_expr> greater than <char_expr> 
+	// |  <int_expr> less than <int_expr> | <str_expr> less than <str_expr> | <char_expr> less than <char_expr>
+
+	private Pattern comp = Pattern.compile("((.+) is on the same page as (.+)|(.+) greater than (.+)|(.+) less than (.+))")
+	
+
+	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
+	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
 	
 	private Pattern var = Pattern.compile("([BICS]([a-zA-Z]+))");
-
-	private Pattern boolVar = Pattern.compile("B.+");
-	private Pattern boolVal = Pattern.compile("yep | nope ");
-
-	private Pattern intVar = Pattern.compile("I.+");
-	private Pattern intVal = Pattern.compile("\\d+");
-
-	private Pattern charVar = Pattern.compile("C.+");
-	private Pattern charVal = Pattern.compile("[a-zA-Z]");
+	private Pattern boolVar = Pattern.compile("^B.+$");
+	private Pattern intVar = Pattern.compile("^I.+$");
+	private Pattern charVar = Pattern.compile("^C.+$");
+	
+	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
+	private Pattern intVal = Pattern.compile("^\\d+$");
+	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
 	private HashSet<String> bools;
 	private HashSet<String> chars;
+	private HashMap<String, String> operations;
 	
 	Parser(String filename) {
 		ints = new HashSet<>();
 		strings = new HashSet<>();
 		bools = new HashSet<>();
 		chars = new HashSet<>();
+		// Defining a map of all operations
+		String [][] opPairs = {
+			{"piggybacking off of", "+"}
+			{"drill down on", "-"},
+			{"joins forces with", "*"},
+			{"leverages", "/"},
+			{"or", "||"},
+			{"and", "&&"},
+			{"not", "!"}
+		}
+		operations = new HashTable<>();
+		for (String[] pair : pairs) {
+            operations.put(pair[0], pair[1]);
+        }
+		
 		String text = readFile(filename);
 
 		// class name is file name
@@ -277,20 +302,19 @@ public class Parser {
 					return false;
 
 				case BOOL:
-					String mappedVal = toBool(val);
-					if (bools.contains(var)) javaFile += var + " = " + mappedVal + ";\n";
+					if (bools.contains(var)) javaFile += var + " = " + parseBoolExpr(val) + ";\n";
 					else {
 						bools.add(var);
-						javaFile += "boolean " + var + " = " + mappedVal + ";\n";
+						javaFile += "boolean " + var + " = " + parseBoolExpr(val) + ";\n";
 						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 					}
 					break;
 
 				case INT:
-					if (ints.contains(var)) javaFile += var + " = " + val + ";\n";
+					if (ints.contains(var)) javaFile += var + " = " + parseIntExpr(val) + ";\n";
 					else {
 						ints.add(var);
-						javaFile += "int " + var + " = " + val + ";\n";
+						javaFile += "int " + var + " = " + parseIntExpr(val) + ";\n";
 						System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
 					}
 					break;
@@ -311,59 +335,232 @@ public class Parser {
 		return false;
 	}
 	
-	
-	private bool_expr_helper(Pattern p, String op, )
-	private String bool_expr(String expr) {
+	private interface Expr {
+		public String call(String expr);
+	}
+	private String unaryExpr(
+		String expr, 
+		Pattern p, 
+		String op, 
+		Expr match,
+		Expr noMatch,
+	)   {
+		String out = "";
+		Matcher m = p.matcher(expr);
+		if(m.find()){
+			return "(" + op + match.call(expr) + ")"
+		}
+		return noMatch.call(expr);
+	}
+	private String getOp(String op) throws SyntaxError{
+		op = op.trim();
+		if(operations.has(op)){
+			return operations.get(op);
+		}
+		else {
+			throw new SyntaxError("Invalid operation: " + op);
+		}
+	}
+	/* Function that applies the supplied pattern to expr and 
+	* calls the corresponding expr according to the operation
+	*/
+	private String binaryExpr(
+		String expr,
+		Pattern p, 
+		Expr left, 
+		Expr right,
+		Expr noMatch,
+	){
+		String out = "";
+		Matcher m = p.matcher(expr);
+		if(m.find()){
+			String e1 = m.group(1);
+			String e2 = m.group(2);
+			String op = comp.substring(e1.length(), comp.length() - e2.length()).trim();
+			return "(" + left.call(e1) + " " +  opMap.call(op) + " " + right.call(e2) + ")"
+		}
+		return noMatch.call(expr);
+	}
+	// Calling it parseAtom since it's for parsing the most basic level (variable or literals)
+	private String parseAtom(
+		String atom, 
+		Pattern varPattern, 
+		Pattern valPattern, 
+		HashSet<String> scope
+	){
+		Matcher varMatcher = varPattern.matcher(bool);
+		Matcher valMatcher = valPattern.matcher(bool);
 		
-	}
-	private String bool_expr1(String expr1){
-		String out = "";
-		Matcher m  = bool_expr1.matcher(expr1);
-		if(m.find()){
-			String expr1 = m.group(1);
-			String expr2 = m.group(2);
-			out += "(" + bool_expr1(expr1) + " || " + bool_expr2(expr2) + ")";
-			
+		if(varMatcher.find()){
+			// Check if we have already declared the variable
+			if(scope.has(atom))
+				return atom;
+			// Maybe need a new type of error for this
+			throw SyntaxError(
+				atom + "doesn't seem to be in your contacts.\n"
+				+ "You currently have the following contacts: \n"
+				+ scope.toString();
+			)
+		} 
+		else if(valMatcher.find()){
+			return toBool(bool);
 		}
 		else {
-			out = bool_expr2(expr);
+			throw SyntaxError(
+				"Hey, you may have sent this to the wrong person.\n"
+				+ bool + " usually isn't responsible for this work."
+			);
 		}
-		return out;
 	}
-	private String bool_expr2(String expr1){
-		String out = "";
-		Matcher m  = bool_expr1.matcher(expr1);
+	
+	private String getComp(String op){
+		if(op.equals("is on the same page as")) return " == ";
+		else if(op.equals("greater than")) return " > ";
+		else return " < ";
+	}
+	
+	private String parseComp(String comp) throws SyntaxError{
+		Matcher m = p.matcher(comp);
 		if(m.find()){
-			String expr1 = m.group(1);
-			String expr2 = m.group(2);
-			out += "(" + bool_expr1(expr1) + " || " + bool_expr2(expr2) + ")";
-			
+			String e1 = m.group(1);
+			String e2 = m.group(2);
+			String op = comp.substring(e1.length(), comp.length() - e2.length()).trim();
+			//TODO figure out smart way to figure out the types being compared?
+			String l = "";
+			String r = "";
+			try {
+				String l = boolExpr(e1);
+				String r = boolExpr(e2);
+			}
+			catch(SyntaxError e){}
+			if (l.equals("") || r.equals("")) try {
+				String l = intExpr(e1);
+				String r = intExpr(e2);
+			}
+			if (l.equals("") || r.equals("")) try {
+				String l = intExpr(e1);
+				String r = intExpr(e2);
+			}
+			catch {
+				throw new SyntaxError(
+					"Hey, I wanted to sync up about your comparisons.\n"
+					+ "You said \"" + comp + "\"\n"
+					+ "But, I wasn't totally sure what you meant."
+				)
+			}
+			return e1 + getComp(op) + e2; 
 		}
-		else {
-			out = bool_expr2(expr);
-		}
-		return out;
+		throw new SyntaxError("Encountered the following invalid comparison:" + comp);
 	}
 
-	private String comp(String expr) {
-
+	private String boolExpr(String expr) {
+		//<bool_expr> ::= <comp> | <bool_expr1>
+		// unaryExpr probably should be renamed 
+		// but basically just to call parseCompExpr if comp is a match
+		return unaryExpr(
+			expr, 
+			comp,
+			"",
+			x->parseComp(x),
+			x->boolExpr1(x)
+		)
+	}
+	
+	private String boolExpr1(String expr){
+		// <bool_expr1> ::= <bool_expr1> or <bool_expr2> | <bool_expr2>
+		return binaryExpr(
+			expr, 
+			bool_expr2, 
+			x->parseBoolExpr1(x), 
+			x->parseBoolExpr2(x),
+			x->parseBoolExpr2(x),
+		);
+	}
+	private String parseBoolExpr2(String expr){
+		//<bool_expr2> ::= <bool_expr2> and <bool_expr3> | <bool_expr3>
+		return binaryExpr(
+			expr, 
+			bool_expr2, 
+			x->parseBoolExpr2(x), 
+			x->parseBoolExpr3(x),
+			x->parseBoolExpr3(x),
+		);
+	}
+	
+	private String parseBoolExpr3(String expr){
+		//<bool_expr3> ::= not <bool_expr4> | <bool_expr4>
+		return unaryExpr(
+			expr, 
+			bool_expr3, 
+			"!", 
+			x->parseBoolExpr3(x), 
+			x->parseBoolExpr4(x) 
+		);
+	}
+	private String parseBoolExpr4(String expr){
+		//  <bool_expr4> ::= (<bool_expr>) | <bool>
+		return unaryExpr(
+			expr, 
+			bool_expr4, 
+			"", 
+			x->parseBoolExpr(x), 
+			x->parseBool(x) 
+		);
+	}
+	
+	private String parseBool(String bool) throws SyntaxError{
+		return parseAtom(
+			bool,
+			boolVar,
+			boolVal,
+			bools
+		)
 	}
 
-	private String int_expr(String expr) {
-		String out = "";
-		Matcher m = int_expr_1.matcher(expr);
-
-		if (m.find()) {
-
-		}
+	private String parseIntExpr(String expr) {
+		return binaryExpr(
+			expr,
+			int_expr, 
+			x->parseIntExpr(x), 
+			x->parseIntExpr1(x), 
+			x->parseIntExpr(x)
+		);
+	}
+	private String parseIntExpr1(String expr) {
+		return binaryExpr(
+			expr,
+			int_expr1, 
+			x->parseIntExpr1(x), 
+			x->parseIntExpr2(x), 
+			x->parseIntEpx1(x)
+		);
+	}
+	private String parseIntExpr2(String expr) {
+		return unaryExpr(
+			expr,
+			int_expr2,
+			"",
+			x->parseIntExpr(x), 
+			x->parseInt(x), 
+		);
+	}
+	private String parseInt(String _int){
+		return parseAtom(
+			_int,
+			intVar,
+			intVal,
+			ints
+		)
 	}
 
 	private String char_expr(String expr) {
-
+		// TODO
+		return "";
 	}
 
 	private String string_expr(String expr) {
-
+		//TODO
+		return "";
 	}
 	
 	/*
@@ -402,352 +599,11 @@ public class Parser {
 		
 		return Type.WRONG;
 	}
-
-	private boolean parseIntExpr(String expr){
-		
-	
-	}
-
-	private boolean parseEquality(String expression) {
-		Matcher eqMatcher = equality.matcher(expression);
-		System.out.println(expression); // debugging
-
-		if (eqMatcher.find()) {
-			String expr1 = eqMatcher.group(1);
-			String expr2 = eqMatcher.group(2);
-
-			Matcher cVar1 = charVar.matcher(expr1);
-			Matcher cVal1 = charVal.matcher(expr1);
-			Matcher cVar2 = charVar.matcher(expr2);
-			Matcher cVal2 = charVal.matcher(expr2);
-
-			Matcher iVar2 = intVar.matcher(expr2);
-			Matcher iVal2 = intVal.matcher(expr2);
-
-			System.out.println("expr1: " + expr1);
-			System.out.println("expr2: " + expr2);
-	
-
-			if (evaluateIntExpression(expr1) && evaluateIntExpression(expr2)) {
-				System.out.println("Successfully evaluated both expressions as int expressions. TODO: Save return values and compare for equality.");
-			}
-			else if (cVar1.find() || cVal1.find()) {
-				// char c = (cVar1.find()) ? value of variable with name cVar1 : expr2.charAt(0);
-
-				if (cVar2.find()) {
-					System.out.println("Comparing char with char variable. TODO: Check for equality.");
-				}
-				else if (cVal2.find()) {
-					System.out.println("Comparing char with char constant. TODO: Check for equality.");
-				}
-				else if (iVal2.find()) {
-					System.out.println("Comparing char with int constant. TODO: Convert char and check for equality.");
-				}
-				else if (iVar2.find()) {
-					System.out.println("Comparing char with int variable. TODO: Convert char and check for equality.");
-				}
-			}
-			else {
-				return false;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseIncrement(String expression) {
-		Matcher inc = intInc.matcher(expression);
-
-		if (inc.find()) {
-			String argument = inc.group(1);
-			Matcher iVar = intVar.matcher(argument);
-			Matcher iVal = intVal.matcher(argument);
-
-			if (iVar.find()) {
-				// TODO: check if variable name has been declared, find in hashtable, increment by 1 and return result
-
-				System.out.printf("Variable with name %s incremented by one.\n", argument);
-			}
-			else if (iVal.find()) {
-				// TODO: also return values somehow; maybe through returning a tuple-like object, or using a global variable?
-
-				System.out.printf("%s incremented to %d.\n", argument, Integer.valueOf(argument) + 1);
-			}
-			else {
-				return false;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseAdd(String expression) {
-		Matcher add = intAdd.matcher(expression);
-
-		String out = "";
-
-		if (add.find()) {
-			String term1 = add.group(1);
-			String term2 = add.group(2);
-			Matcher t1Var = intVar.matcher(term1);
-			Matcher t1Val = intVal.matcher(term1);
-			Matcher t2Var = intVar.matcher(term2);
-			Matcher t2Val = intVal.matcher(term2);
-
-			if (t1Var.find()) {
-				// TODO: get variable from hashtable
-				out = "Variable with name " + term1 + " summed with ";
-			}
-			else if (t1Val.find()) {
-				out = "Constant value " + term1 + " summed with ";
-			}
-			else {
-				return false;
-			}
-
-			if (t2Var.find()) {
-				// TODO: get variable from hashtable
-				out += "value of variable with name " + term2 + ".";
-			}
-			else if (t2Val.find()) {
-				// TODO: if term1 was a variable, change its value here.				
-				out += "constant value " + term2 + ".";
-				// TODO: must also return value, as in parseIncrement
-			}
-			else {
-				return false;
-			}
-
-			System.out.println(out);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseLoop(String expr) {
-		Matcher loop = this.loop.matcher(expr);
-
-		if (loop.find()) {
-			String argument = loop.group(1);
-			//Matcher boolStmt = 
-		}
-		return true;
-	}
-
-	private boolean parseDecrement(String expression) {
-		Matcher dec = intDec.matcher(expression);
-
-		if (dec.find()) {
-			String argument = dec.group(1);
-			Matcher iVar = intVar.matcher(argument);
-			Matcher iVal = intVal.matcher(argument);
-
-			if (iVar.find()) {
-				// TODO: check if variable name has been declared, find in hashtable, decrement by 1 and return result
-
-				System.out.printf("Variable with name %s decremented by one.\n", argument);
-			}
-			else if (iVal.find()) {
-				// TODO: must also return value as in parseIncrement
-
-				System.out.printf("%s decremented to %d.\n", argument, Integer.valueOf(argument) - 1);
-			}
-			else {
-				return false;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseSubtract(String expression) {
-		Matcher sub = intSub.matcher(expression);
-
-		String out = "";
-
-		if (sub.find()) {
-			String term1 = sub.group(1);
-			String term2 = sub.group(2);
-			Matcher t1Var = intVar.matcher(term1);
-			Matcher t1Val = intVal.matcher(term1);
-			Matcher t2Var = intVar.matcher(term2);
-			Matcher t2Val = intVal.matcher(term2);
-
-			if (t1Var.find()) {
-				// TODO: get variable from hashtable
-				out = "Variable with name " + term1 + " subtracted by ";
-			}
-			else if (t1Val.find()) {
-				out = "Constant value " + term1 + " subtracted by ";
-			}
-			else {
-				return false;
-			}
-
-			if (t2Var.find()) {
-				// TODO: get variable from hashtable
-				out += "value of variable with name" + term2 + ".";
-			}
-			else if (t2Val.find()) {
-				// TODO: if term1 was a variable, change its value here.				
-				out += "constant value " + term2 + ".";
-				// TODO: must also return value, as in parseIncrement
-			}
-			else {
-				return false;
-			}
-
-			System.out.println(out);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseMultiply(String expression) {
-		Matcher mult = intMult.matcher(expression);
-
-		String out = "";
-
-		if (mult.find()) {
-			String term1 = mult.group(1);
-			String term2 = mult.group(2);
-			Matcher t1Var = intVar.matcher(term1);
-			Matcher t1Val = intVal.matcher(term1);
-			Matcher t2Var = intVar.matcher(term2);
-			Matcher t2Val = intVal.matcher(term2);
-
-			if (t1Var.find()) {
-				// TODO: get variable from hashtable
-				out = "Variable with name " + term1 + " multiplied by ";
-			}
-			else if (t1Val.find()) {
-				out = "Constant value " + term1 + " multiplied by ";
-			}
-			else {
-				return false;
-			}
-
-			if (t2Var.find()) {
-				// TODO: get variable from hashtable
-				out += "value of variable with name" + term2 + ".";
-			}
-			else if (t2Val.find()) {
-				// TODO: if term1 was a variable, change its value here.				
-				out += "constant value " + term2 + ".";
-				// TODO: must also return value, as in parseIncrement
-			}
-			else {
-				return false;
-			}
-
-			System.out.println(out);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	private boolean parseDivide(String expression) {
-		Matcher div = intDiv.matcher(expression);
-
-		String out = "";
-
-		if (div.find()) {
-			String term1 = div.group(1);
-			String term2 = div.group(2);
-			Matcher t1Var = intVar.matcher(term1);
-			Matcher t1Val = intVal.matcher(term1);
-			Matcher t2Var = intVar.matcher(term2);
-			Matcher t2Val = intVal.matcher(term2);
-
-			if (t1Var.find()) {
-				// TODO: get variable from hashtable
-				out = "Variable with name " + term1 + " divided by ";
-			}
-			else if (t1Val.find()) {
-				out = "Constant value " + term1 + " divided by ";
-			}
-			else {
-				return false;
-			}
-
-			if (t2Var.find()) {
-				// TODO: get variable from hashtable
-				out += "value of variable with name" + term2 + ".";
-			}
-			else if (t2Val.find()) {
-				// TODO: if term1 was a variable, change its value here.				
-				out += "constant value " + term2 + ".";
-				// TODO: must also return value, as in parseIncrement
-			}
-			else {
-				return false;
-			}
-
-			System.out.println(out);
-
-			return true;
-		}
-
-		return false;
-	}
 	
 	// private  boolean parseConditional(String expression) {
 
 	// }
 
-	private boolean evaluateIntExpression(String expression) {
-		Matcher inc = intInc.matcher(expression);
-		Matcher add = intAdd.matcher(expression);
-		Matcher dec = intDec.matcher(expression);
-		Matcher sub = intSub.matcher(expression);
-		Matcher mult = intMult.matcher(expression);
-		Matcher div = intDiv.matcher(expression);
-		Matcher iVar = intVar.matcher(expression);
-		Matcher iVal = intVal.matcher(expression);
-
-		// TODO: evaluate expressions, handle variables, handle operator chaining
-		if (inc.find()) {
-			parseIncrement(expression);
-		}
-		else if (add.find()) {
-			parseAdd(expression);
-		}
-		else if (dec.find()) {
-			parseDecrement(expression);
-		}
-		else if (sub.find()) {
-			parseSubtract(expression);
-		}
-		else if (mult.find()) {
-			parseMultiply(expression);
-		}
-		else if (div.find()) {
-			parseDivide(expression);
-		}
-		else if (iVar.find()) {
-			System.out.printf("Variable with name %s.\n", expression);
-		}
-		else if (iVal.find()) {
-			System.out.printf("Constant value %d.\n", Integer.valueOf(expression));
-		}
-		else {
-			return false;
-		}
-
-		return true;
-	}
 }
 
 class SyntaxError extends Exception {
