@@ -2,7 +2,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
 import java.util.HashSet;
-import java.util.HashTable;
+import java.util.HashMap;
 import java.io.File;
 import java.io.FileNotFoundException; 
 import java.util.Scanner; 
@@ -35,15 +35,20 @@ public class Parser {
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
 	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
-	private Pattern intAdd = Pattern.compile("^(.+) piggybacking off of (.+)$");
+
 	private Pattern intDec = Pattern.compile("^drill down on (.+)$");
 	private Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
 	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
 	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
-	private Pattern bool_expr1 = Pattern.compile("^(.+) or (.+)$"); // OR
+	private Pattern int_expr = Pattern.compile(".+ .+");
+	private Pattern int_expr_2 = Pattern.compile("([^\\(]?.+) drill down on ([^\\(]?.+?)");
+	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+))");
+	private Pattern int_expr2 = Pattern.compile("\\((.+)\\)");
+
+	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
 	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
-	private Pattern bool_expr3= Pattern.compile("^not (.+)$"); // NOT
+	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)$"); // NOT
 
 	// | <str_expr> is on the same page as <str_expr>
@@ -53,7 +58,7 @@ public class Parser {
 	//| <char_expr> greater than <char_expr> 
 	// |  <int_expr> less than <int_expr> | <str_expr> less than <str_expr> | <char_expr> less than <char_expr>
 
-	private Pattern comp = Pattern.compile("((.+) is on the same page as (.+)|(.+) greater than (.+)|(.+) less than (.+))")
+	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) greater than (.+)|(.+) less than (.+))");
 	
 
 	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
@@ -81,16 +86,19 @@ public class Parser {
 		chars = new HashSet<>();
 		// Defining a map of all operations
 		String [][] opPairs = {
-			{"piggybacking off of", "+"}
+			{"piggybacking off of", "+"},
 			{"drill down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
 			{"or", "||"},
 			{"and", "&&"},
-			{"not", "!"}
-		}
-		operations = new HashTable<>();
-		for (String[] pair : pairs) {
+			{"not", "!"},
+			{"is on the same page as", "=="},
+			{"greater than", ">"},
+			{"less than", "<"}
+		};
+		operations = new HashMap<>();
+		for (String[] pair : opPairs) {
             operations.put(pair[0], pair[1]);
         }
 		
@@ -188,6 +196,7 @@ public class Parser {
 			while(m.find()){
 				t += m.group().trim() + " ";
 			}
+			t = t.trim().replaceAll(" +", " ");
 			// System.out.println(t); // debugging 
 			return t;
 		} catch (IOException e) {
@@ -266,14 +275,14 @@ public class Parser {
 			System.out.println(expression);
 			match = varAssign(expression);
 
-			if (!match) match = parseLoop(expression);
-			if (!match) match = parseEquality(expression);
-			if (!match) match = parseIncrement(expression);
-			if (!match) match = parseAdd(expression);
-			if (!match) match = parseDecrement(expression);
-			if (!match) match = parseSubtract(expression);
-			if (!match) match = parseMultiply(expression);
-			if (!match) match = parseDivide(expression);
+			// if (!match) match = parseLoop(expression);
+			// if (!match) match = parseEquality(expression);
+			// if (!match) match = parseIncrement(expression);
+			// if (!match) match = parseAdd(expression);
+			// if (!match) match = parseDecrement(expression);
+			// if (!match) match = parseSubtract(expression);
+			// if (!match) match = parseMultiply(expression);
+			// if (!match) match = parseDivide(expression);
 			if (!match)	System.out.println("Syntax error.");
 		}
 		else {
@@ -287,14 +296,14 @@ public class Parser {
 		else return "false";
 	}
 
-	private boolean varAssign(String expression) {
+	private boolean varAssign(String expression) throws SyntaxError {
 		Matcher assignment = varAssign.matcher(expression);
 
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
 			
-			Type type = findAssignmentType(var, val);
+			Type type = findVarType(var);
 
 			// add declaration and assignment to output file
 			switch(type) {
@@ -336,25 +345,27 @@ public class Parser {
 	}
 	
 	private interface Expr {
-		public String call(String expr);
+		public String call(String expr) throws SyntaxError;
 	}
 	private String unaryExpr(
 		String expr, 
 		Pattern p, 
 		String op, 
 		Expr match,
-		Expr noMatch,
-	)   {
+		Expr noMatch
+	) throws SyntaxError {
 		String out = "";
 		Matcher m = p.matcher(expr);
+		
 		if(m.find()){
-			return "(" + op + match.call(expr) + ")"
+			String e1 = m.group(1);
+			return "(" + op + match.call(e1) + ")";
 		}
 		return noMatch.call(expr);
 	}
 	private String getOp(String op) throws SyntaxError{
 		op = op.trim();
-		if(operations.has(op)){
+		if(operations.get(op) != null){
 			return operations.get(op);
 		}
 		else {
@@ -369,15 +380,31 @@ public class Parser {
 		Pattern p, 
 		Expr left, 
 		Expr right,
-		Expr noMatch,
-	){
+		Expr noMatch
+	) throws SyntaxError {
 		String out = "";
 		Matcher m = p.matcher(expr);
 		if(m.find()){
 			String e1 = m.group(1);
 			String e2 = m.group(2);
-			String op = comp.substring(e1.length(), comp.length() - e2.length()).trim();
-			return "(" + left.call(e1) + " " +  opMap.call(op) + " " + right.call(e2) + ")"
+			System.out.println(m.groupCount());
+
+			// Hack to generalize around the fact that using '|'
+			// to match multiple groups ends up putting the values in weird groups
+			if(m.groupCount() > 2){
+				for(int i = 2; i < m.groupCount(); i+=2){
+					if(m.group(i) != null){
+						e1 = m.group(i);
+						e2 = m.group(i + 1);
+					}
+				}
+			}
+
+
+			System.out.println(e1);
+			System.out.println(e2);
+			String op = expr.substring(e1.length(), expr.length() - e2.length()).trim();
+			return "(" + left.call(e1) + " " +  getOp(op) + " " + right.call(e2) + ")";
 		}
 		return noMatch.call(expr);
 	}
@@ -387,40 +414,34 @@ public class Parser {
 		Pattern varPattern, 
 		Pattern valPattern, 
 		HashSet<String> scope
-	){
-		Matcher varMatcher = varPattern.matcher(bool);
-		Matcher valMatcher = valPattern.matcher(bool);
+	) throws SyntaxError {
+		Matcher varMatcher = varPattern.matcher(atom);
+		Matcher valMatcher = valPattern.matcher(atom);
 		
 		if(varMatcher.find()){
 			// Check if we have already declared the variable
-			if(scope.has(atom))
+			if(scope.contains(atom))
 				return atom;
 			// Maybe need a new type of error for this
-			throw SyntaxError(
+			throw new SyntaxError(
 				atom + "doesn't seem to be in your contacts.\n"
 				+ "You currently have the following contacts: \n"
-				+ scope.toString();
-			)
+				+ scope.toString()
+			);
 		} 
 		else if(valMatcher.find()){
-			return toBool(bool);
+			return atom;
 		}
 		else {
-			throw SyntaxError(
+			throw new SyntaxError(
 				"Hey, you may have sent this to the wrong person.\n"
-				+ bool + " usually isn't responsible for this work."
+				+ atom + " usually isn't responsible for this work."
 			);
 		}
 	}
 	
-	private String getComp(String op){
-		if(op.equals("is on the same page as")) return " == ";
-		else if(op.equals("greater than")) return " > ";
-		else return " < ";
-	}
-	
 	private String parseComp(String comp) throws SyntaxError{
-		Matcher m = p.matcher(comp);
+		Matcher m = comp_expr.matcher(comp);
 		if(m.find()){
 			String e1 = m.group(1);
 			String e2 = m.group(2);
@@ -429,75 +450,73 @@ public class Parser {
 			String l = "";
 			String r = "";
 			try {
-				String l = boolExpr(e1);
-				String r = boolExpr(e2);
+				l = parseBoolExpr(e1);
+				r = parseBoolExpr(e2);
 			}
 			catch(SyntaxError e){}
 			if (l.equals("") || r.equals("")) try {
-				String l = intExpr(e1);
-				String r = intExpr(e2);
+				l = parseIntExpr(e1);
+				r = parseIntExpr(e2);
 			}
-			if (l.equals("") || r.equals("")) try {
-				String l = intExpr(e1);
-				String r = intExpr(e2);
-			}
-			catch {
+			catch (SyntaxError e) {
 				throw new SyntaxError(
 					"Hey, I wanted to sync up about your comparisons.\n"
 					+ "You said \"" + comp + "\"\n"
 					+ "But, I wasn't totally sure what you meant."
-				)
+				);
 			}
-			return e1 + getComp(op) + e2; 
+			return e1 + getOp(op) + e2; 
 		}
 		throw new SyntaxError("Encountered the following invalid comparison:" + comp);
 	}
 
-	private String boolExpr(String expr) {
+	private String parseBoolExpr(String expr) throws SyntaxError {
 		//<bool_expr> ::= <comp> | <bool_expr1>
 		// unaryExpr probably should be renamed 
 		// but basically just to call parseCompExpr if comp is a match
 		return unaryExpr(
 			expr, 
-			comp,
+			comp_expr,
 			"",
 			x->parseComp(x),
-			x->boolExpr1(x)
-		)
-	}
-	
-	private String boolExpr1(String expr){
-		// <bool_expr1> ::= <bool_expr1> or <bool_expr2> | <bool_expr2>
-		return binaryExpr(
-			expr, 
-			bool_expr2, 
-			x->parseBoolExpr1(x), 
-			x->parseBoolExpr2(x),
-			x->parseBoolExpr2(x),
+			x->parseBoolExpr1(x)
 		);
 	}
-	private String parseBoolExpr2(String expr){
+	
+	private String parseBoolExpr1(String expr) throws SyntaxError {
+		// <bool_expr1> ::= <bool_expr1> or <bool_expr2> | <bool_expr2>
+		System.out.println("here)");   
+		return binaryExpr(
+			expr, 
+			bool_expr1, 
+			x->parseBoolExpr1(x), 
+			x->parseBoolExpr2(x),
+			x->parseBoolExpr2(x)
+		);
+	}
+	private String parseBoolExpr2(String expr) throws SyntaxError {
 		//<bool_expr2> ::= <bool_expr2> and <bool_expr3> | <bool_expr3>
+		System.out.println(expr);
 		return binaryExpr(
 			expr, 
 			bool_expr2, 
 			x->parseBoolExpr2(x), 
 			x->parseBoolExpr3(x),
-			x->parseBoolExpr3(x),
+			x->parseBoolExpr3(x)
 		);
 	}
 	
-	private String parseBoolExpr3(String expr){
+	private String parseBoolExpr3(String expr) throws SyntaxError {
 		//<bool_expr3> ::= not <bool_expr4> | <bool_expr4>
 		return unaryExpr(
 			expr, 
 			bool_expr3, 
 			"!", 
-			x->parseBoolExpr3(x), 
+			x->parseBoolExpr4(x), 
 			x->parseBoolExpr4(x) 
 		);
 	}
-	private String parseBoolExpr4(String expr){
+	private String parseBoolExpr4(String expr) throws SyntaxError {
 		//  <bool_expr4> ::= (<bool_expr>) | <bool>
 		return unaryExpr(
 			expr, 
@@ -509,51 +528,51 @@ public class Parser {
 	}
 	
 	private String parseBool(String bool) throws SyntaxError{
-		return parseAtom(
+		return toBool(parseAtom(
 			bool,
 			boolVar,
 			boolVal,
 			bools
-		)
+		));
 	}
 
-	private String parseIntExpr(String expr) {
+	private String parseIntExpr(String expr) throws SyntaxError {
 		return binaryExpr(
 			expr,
 			int_expr, 
 			x->parseIntExpr(x), 
 			x->parseIntExpr1(x), 
-			x->parseIntExpr(x)
+			x->parseIntExpr1(x)
 		);
 	}
-	private String parseIntExpr1(String expr) {
+	private String parseIntExpr1(String expr) throws SyntaxError {
 		return binaryExpr(
 			expr,
 			int_expr1, 
 			x->parseIntExpr1(x), 
 			x->parseIntExpr2(x), 
-			x->parseIntEpx1(x)
+			x->parseIntExpr2(x)
 		);
 	}
-	private String parseIntExpr2(String expr) {
+	private String parseIntExpr2(String expr) throws SyntaxError {
 		return unaryExpr(
 			expr,
 			int_expr2,
 			"",
 			x->parseIntExpr(x), 
-			x->parseInt(x), 
+			x->parseInt(x)
 		);
 	}
-	private String parseInt(String _int){
+	private String parseInt(String _int) throws SyntaxError {
 		return parseAtom(
 			_int,
 			intVar,
 			intVal,
 			ints
-		)
+		);
 	}
 
-	private String char_expr(String expr) {
+	private String parseCharExpr(String expr) {
 		// TODO
 		return "";
 	}
