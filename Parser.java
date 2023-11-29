@@ -42,8 +42,8 @@ public class Parser {
 	
 	private Pattern bool_expr1 = Pattern.compile("^(.+) or (.+)$"); // OR
 	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
-	private Pattern bool_expr3 = Pattern.compile("(^not (.+)$ | (.+))"); // NOT
-	private Pattern bool_expr4 = 8008
+	private Pattern bool_expr3= Pattern.compile("^not (.+)$"); // NOT
+	private Pattern bool_expr4 =  Pattern.compile("\\((.+)\\)$"); // NOT
 
 	private Pattern conditional = Pattern.compile("^Suppose (.+), then (.+); otherwise, (.+)$");
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+).");
@@ -224,6 +224,7 @@ public class Parser {
 		functionStart += "System.out.println(";
 		functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
 		functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
+		functionStart += "return;";
 		functionStart += "}";
 		return functionStart + body + "\n}";
 	}
@@ -311,6 +312,20 @@ public class Parser {
 	private String bool_expr(String expr) {
 		
 	}
+	private String bool_expr1(String expr1){
+		String out = "";
+		Matcher m  = bool_expr1.matcher(expr1);
+		if(m.find()){
+			String expr1 = m.group(1);
+			String expr2 = m.group(2);
+			out += bool_expr1(expr1) + bool_expr2(expr2);
+			
+		}
+		else {
+			bool_expr2(expr)
+		}
+		
+	}
 
 	private String comp(String expr) {
 
@@ -365,6 +380,10 @@ public class Parser {
 		return Type.WRONG;
 	}
 
+	private boolean parseIntExpr(String expr){
+		
+	
+	}
 	private boolean parseEquality(String expression) {
 		Matcher eqMatcher = equality.matcher(expression);
 		System.out.println(expression); // debugging
