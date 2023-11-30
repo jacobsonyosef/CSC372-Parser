@@ -73,6 +73,30 @@ public class Parser {
 	private HashSet<String> bools;
 	private HashSet<String> chars;
 	private HashMap<String, String> operations;
+
+	Parser() {
+		ints = new HashSet<>();
+		strings = new HashSet<>();
+		bools = new HashSet<>();
+		chars = new HashSet<>();
+		// Defining a map of all operations
+		String [][] opPairs = {
+			{"piggybacking off of", "+"},
+			{"drill down on", "-"},
+			{"joins forces with", "*"},
+			{"leverages", "/"},
+			{"or", "||"},
+			{"and", "&&"},
+			{"not", "!"},
+			{"is on the same page as", "=="},
+			{"greater than", ">"},
+			{"less than", "<"}
+		};
+		operations = new HashMap<>();
+		for (String[] pair : opPairs) {
+            operations.put(pair[0], pair[1]);
+        }
+	}
 	
 	Parser(String filename) {
 		ints = new HashSet<>();
@@ -275,7 +299,7 @@ public class Parser {
 		return functionStart + body + "\n";
 	}
 	
-	private String parseSentence(String cmd) throws SyntaxError {
+	public String parseSentence(String cmd) throws SyntaxError {
 		Matcher m = statement.matcher(cmd);
 		String match = "";
 		
