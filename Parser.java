@@ -44,12 +44,12 @@ public class Parser {
 
 	private String javaFile;
 	private Pattern subject = Pattern.compile("Subject: ([^ ]+)\\. ");
-	private Pattern prolog = Pattern.compile("(Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern. )");
+	private Pattern prolog = Pattern.compile("(Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern[,\\.]{1} )");
 	// change epilog?
 	private Pattern epilog = Pattern.compile("Best, ([BICS]([a-zA-Z]+))");
-	private Pattern function = Pattern.compile("Subject: ([^ ]+)\\. (Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern\\. ).+?(Best, ([BICS]([a-zA-Z]+)))");
+	private Pattern function = Pattern.compile("Subject: ([^ ]+)\\. (Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern, ).+?(Best, ([BICS]([a-zA-Z]+)))");
 	private Pattern return_pattern = Pattern.compile("RE: (.+)");
-	private Pattern call_pattern = Pattern.compile("SEE: (.+) with: (.+)");
+	private Pattern call_pattern = Pattern.compile("(SEE: (.+) with: (.+))");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
@@ -57,13 +57,14 @@ public class Parser {
 	
 	private Pattern int_expr = Pattern.compile("((.+) piggybacking off of (.+)|^(.+) drill down on (.+))");
 	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+)|^(.+) remains to be seen of (.+))");
-
+	
 	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
 	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
+	
 	
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
@@ -179,7 +180,6 @@ public class Parser {
 		Matcher fs = function.matcher(text);
 		while(fs.find()){
 			String func = fs.group();
-			System.out.println(func);
 			Matcher s = subject.matcher(func);
 			javaFile += parseProlog(func);
 			String body = getBody(func);
@@ -397,13 +397,17 @@ public class Parser {
 	
 	private String parseFunctionCall(String functionCall) throws SyntaxError{
 		Matcher r = call_pattern.matcher(functionCall);
+		System.out.println("HERE" + functionCall);
 		if (!r.find())
 			return "";
 
 		System.out.println(r.group());
-		String funcName = r.group(1);
+		System.out.println(r.group(2));
+		System.out.println(r.group(3));
+		String funcName = r.group(2);
+		System.out.println(funcName);
 		Func func = functions.get(funcName);
-		String args = r.group(2);
+		String args = r.group(3);
 		String[] argList = new String[func.numArgs];
 		System.out.println(func.argTypes.toString());
 		String rem = args;
@@ -440,7 +444,8 @@ public class Parser {
 				s += ",";
 			}
 		}
-		return funcName +"(" + s + ");";
+		System.out.println("HERE: " + funcName);
+		return funcName +"(" + s + ")";
 	}
 	
 
@@ -457,7 +462,6 @@ public class Parser {
 			System.out.println(match);
 			System.out.println(match.length());
 			if(match.length() > 0) return match;
-			System.out.println("HEre");
 			match = print(expression);
 			if (match.length() >  0) return match;
 			try {
@@ -599,9 +603,10 @@ public class Parser {
 	private String parseList(String in) throws SyntaxError{
 		Matcher l = list.matcher(in);
 		if(l.find()){
-			String cur = parseSentence(l.group(1));
+			//String cur = l.group(1);
+			//if()
 			String next = parseList(l.group(2));
-			return  cur + "\n" + next;
+			return    "\n" + next;
 		}
 		return parseSentence(in);
 	}
@@ -619,9 +624,10 @@ public class Parser {
 	) throws SyntaxError {
 		String out = "";
 		Matcher m = p.matcher(expr);
-		
+		System.out.println("HERE" + expr);
 		if(m.find()){
 			String e1 = m.group(1);
+			System.out.println("CALL");
 			return "(" + op + match.call(e1) + ")";
 		}
 		return noMatch.call(expr);
@@ -758,7 +764,7 @@ public class Parser {
 			comp_expr,
 			"",
 			x->parseComp(x),
-			x->parseBoolExpr1(x)
+			x->parseBoolExpr0(x)
 		);
 	}
 	
@@ -853,16 +859,6 @@ public class Parser {
 	}
 	
 	private String parseInt(String _int) throws SyntaxError {
-		System.out.println(_int);
-		Matcher ints = intVal.matcher(_int);
-		if(ints.find()){
-			System.out.println(ints.group());
-			System.out.println("FUCK");
-		}
-		else {
-			System.out.println("FUCK");
-	
-		}
 		return parseAtom(
 			_int,
 			intVar,
