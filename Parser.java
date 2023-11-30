@@ -69,7 +69,7 @@ public class Parser {
 	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
 	private Pattern intVal = Pattern.compile("^\\d+$");
 	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
-	private Pattern stringVal = Pattern.compile("^[a-zA-Z]+$");
+	private Pattern stringVal = Pattern.compile("^\"[a-zA-Z]+\"$");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
@@ -315,14 +315,14 @@ public class Parser {
 			System.out.println(match.length());
 			if(match.length() > 0) return match;
 			System.out.println("HEre");
+			match = print(expression);
+			if (match.length() >  0) return match;
 			match = evalExpr(expression);
 			if(match.length() > 0) return match;
 			match = condition(expression);
 			if(match.length() >  0) return match;
 			match = loop(expression);
 			if(match.length() > 0) return match;
-			match = print(expression);
-			if (match.length() >  0) return match;
 			// if (!match) match = parseEquality(expression);
 			// if (!match) match = parseIncrement(expression);
 			// if (!match) match = parseAdd(expression);
@@ -350,6 +350,7 @@ public class Parser {
 			return "";
 		String expr = m.group(1);
 		String toString = evalExpr(expr);
+		System.out.println(toString);
 		return "System.out.println(" + toString + ");\n";
 	}
 
@@ -399,7 +400,7 @@ public class Parser {
 						strings.add(var);
 						System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
 
-						return "String " + var + " = " + "\"" + val + "\"" + ";\n";
+						return "String " + var + " = " + "" + val + "" + ";\n";
 					}
 			}
 		}
@@ -414,6 +415,10 @@ public class Parser {
 		catch(SyntaxError e){}
 		try {
 			return parseBoolExpr(expr);
+		}
+		catch(SyntaxError e){}
+		try {
+			return parseStringExpr(expr);
 		}
 		catch (SyntaxError e) {
 			throw new SyntaxError(
@@ -588,12 +593,14 @@ public class Parser {
 		throw new SyntaxError("Encountered the following invalid comparison:" + comp);
 	}
 
-	private String parseString(String string) throws SyntaxError {
-		Matcher m = stringVal.matcher(string);
-		if (m.find()) {
-			return m.group(1);
+	private String parseStringExpr(String expr) throws SyntaxError {
+		try {
+			return parseAtom(expr, stringVar, stringVal, strings);
 		}
-		throw new SyntaxError("Encountered the following invalid String:" + m.group(1));
+		catch(SyntaxError e)
+		{
+			throw new SyntaxError(e.getMessage());
+		}
 	}
 
 	private String parseBoolExpr(String expr) throws SyntaxError {
