@@ -66,7 +66,7 @@ public class Parser {
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
 	
 	
-	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
+	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+) Thanks");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
 	
 	private Pattern print = Pattern.compile("[hH]{1}ighlight (.+)");
@@ -80,7 +80,7 @@ public class Parser {
 	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
 	private Pattern intVal = Pattern.compile("^\\d+$");
 	private Pattern charVal = Pattern.compile("^[a-zA-Z0-9]$");
-	private Pattern stringVal = Pattern.compile("^\"[a-zA-Z0-9]+\"$");
+	private Pattern stringVal = Pattern.compile("^\"(.+)\"$");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
@@ -127,8 +127,8 @@ public class Parser {
 			{"and", "&&"},
 			{"not", "!"},
 			{"is on the same page as", "=="},
-			{"greater than", ">"},
-			{"less than", "<"}
+			{"is greater than", ">"},
+			{"is less than", "<"}
 		};
 		operations = new HashMap<>();
 		for (String[] pair : opPairs) {
@@ -388,9 +388,9 @@ public class Parser {
 		String toRet = r.group(1);
 		switch(functions.get(curFunc).returnType) {
 			case INT:
-				return "return " + parseIntExpr(toRet) + ";";
+				return "return " + parseIntExpr(toRet);
 			case BOOL:
-				return "return " + parseBoolExpr(toRet) + ";";
+				return "return " + parseBoolExpr(toRet);
 		}
 		return "";
 	}
@@ -460,25 +460,22 @@ public class Parser {
 			match = varAssign(expression);
 			System.out.println(match);
 			System.out.println(match.length());
-			if(match.length() > 0) return match;
+			if(match.length() >  0) return match + ";";
+			match = loop(expression);
+			if (match.length() >  0) return match + ";";
+			match = condition(expression);
+			if(match.length() > 0) return match + ";";
 			match = print(expression);
-			if (match.length() >  0) return match;
+			if (match.length() >  0) return match + ";";
+			match = parseReturn(expression);
+			if (match.length() >  0) return match + ";";
+			match = parseFunctionCall(expression);
+			if (match.length() >  0) return match + ";";
 			try {
 				match = evalExpr(expression);
 			}
 			catch (SyntaxError e) {}
-			if(match.length() > 0) return match;
-			match = condition(expression);
-			if(match.length() >  0) return match;
-			match = loop(expression);
-			if(match.length() > 0) return match;
-			match = print(expression);
-			if (match.length() >  0) return match;
-			match = parseReturn(expression);
-			if (match.length() >  0) return match;
-			match = parseFunctionCall(expression);
-			if (match.length() >  0) return match;
-			
+			if (match.length() >  0) return match + ";";
 			throw new SyntaxError("Missing period.");
 		}
 		else {
@@ -500,50 +497,51 @@ public class Parser {
 		String expr = m.group(1);
 		String toString = evalExpr(expr);
 		System.out.println(toString);
-		return "System.out.println(" + toString + ");\n";
+		return "System.out.print(" + toString + ");\n";
 	}
 
 	private String varAssign(String expression) throws SyntaxError {
 		Matcher assignment = varAssign.matcher(expression);
-		System.out.println(expression);
+		System.out.println("assign: "+ expression);
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
 			Type type = findVarType(var);			// add declaration and assignment to output file
+			System.out.println("assign: " + val);
 			switch(type) {
 				case WRONG:
 					return "";
 				case BOOL:
-					if (bools.contains(var)) return  var + " = " + parseBoolExpr(val) + ";\n";
+					if (bools.contains(var)) return  var + " = " + parseBoolExpr(val);
 					else {
-						String out = "boolean " + var + " = " + parseBoolExpr(val) + ";\n";
+						String out = "boolean " + var + " = " + parseBoolExpr(val);
 						bools.add(var);
 						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 						return out;
 					}
 
 				case INT:
-					if (ints.contains(var)) return var + " = " + parseIntExpr(val) + ";\n";
+					if (ints.contains(var)) return var + " = " + parseIntExpr(val);
 					else {
-						String out = "int " + var + " = " + parseIntExpr(val) + ";\n";
+						String out = "int " + var + " = " + parseIntExpr(val);
 						ints.add(var);
 						System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
 						return out;
 					}
 
 				case CHAR:
-					if (chars.contains(var)) return var + " = " + "'" + val + "'" + ";\n";
+					if (chars.contains(var)) return var + " = " + "'" + val + "'";
 					else {
 						chars.add(var);
 						System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 
-						return "char " + var + " = " + "'" + val + "'" + ";\n";
+						return "char " + var + " = " + "'" + val + "'";
 					}
 
 				case STRING:
-					if (strings.contains(var)) return var + " = " + "'" + val + "'" + ";\n";
+					if (strings.contains(var)) return var + " = " + "'";
 					else {
-						String out = "String " + var + " = " + "" + val + "" + ";\n";
+						String out = "String " + var + " = " + "" + val;
 						strings.add(var);
 						System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
 
@@ -591,10 +589,13 @@ public class Parser {
 	
 	private String loop(String loop) throws SyntaxError {
 		Matcher m = this.loop.matcher(loop);
+		System.out.println("LOOP " + loop);
 		if(!m.find()){
 			return "";
 		}
+		System.out.println("LOOP");
 		String condition = parseBoolExpr(m.group(1));
+		System.out.println("LIST:" +m.group(2));
 		String list = parseList(m.group(2));
 		String out =  "while (" +condition + ")";
 		out += "\n" + " {" + list + "}";
@@ -602,14 +603,13 @@ public class Parser {
 	}
 	
 	private String parseList(String in) throws SyntaxError{
+		String out = "";
+		System.out.println("LIST");
 		Matcher l = list.matcher(in);
-		if(l.find()){
-			//String cur = l.group(1);
-			//if()
-			String next = parseList(l.group(2));
-			return    "\n" + next;
+		for(String el : in.split(",")){
+			out += parseSentence(el.strip());
 		}
-		return parseSentence(in);
+		return out;
 	}
 	
 	
