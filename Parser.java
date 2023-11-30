@@ -3,6 +3,7 @@ import java.util.regex.Pattern;
 import java.util.Scanner;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
@@ -11,6 +12,20 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 public class Parser {
+	// main() code adapted from Parser.java from the class resources
+	public static void main (String[] args) {
+		if (args.length == 0) {
+			// if no file is supplied, return
+			System.out.println("Please input a file name.");
+			return;
+		}
+		Parser parser = new Parser();
+		parser.parseText(args[0]);
+		try (PrintWriter out = new PrintWriter(args[0].substring(0,args[0].length()-6) +".java")) {
+			out.println(parser.javaFile);
+		}
+		catch (FileNotFoundException e){}
+    }
 
 	enum Type {
 		BOOL,
@@ -19,16 +34,22 @@ public class Parser {
 		STRING,
 		WRONG
 	}
-
+	
 	// managing scope in functions?
 	// declaring a new function for parser
 	// Subject: Names...
+	// TODO mod operator
 	private static Pattern removeWhiteSpace = Pattern.compile(".+");
-	private String javaFile;
+	private static Pattern function_pattern = Pattern.compile("Subject: ([^ ]+?)\\. ((Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, ).+? Best, [BICS]([a-zA-Z]+)\\.");
 
-	private Pattern prolog = Pattern.compile("(^(Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, )");
+	private String javaFile;
+	private Pattern subject = Pattern.compile("Subject: ([^ ]+)\\. ");
+	private Pattern prolog = Pattern.compile("(Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern. )");
 	// change epilog?
-	private Pattern epilog = Pattern.compile("(Best, ([BICS]([a-zA-Z]+)) )$");
+	private Pattern epilog = Pattern.compile("Best, ([BICS]([a-zA-Z]+))");
+	private Pattern function = Pattern.compile("Subject: ([^ ]+)\\. (Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern\\. ).+?(Best, ([BICS]([a-zA-Z]+)))");
+	private Pattern return_pattern = Pattern.compile("RE: (.+)");
+	private Pattern call_pattern = Pattern.compile("SEE: (.+) with: (.+)");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
@@ -53,6 +74,7 @@ public class Parser {
 	private Pattern loop_start = Pattern.compile("^Suppose (.+):");
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
 	
+	private Pattern loop_start = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
 	
@@ -75,12 +97,35 @@ public class Parser {
 	private HashSet<String> chars;
 	private HashMap<String, String> operations;
 
+	
+	String curFunc = "";
+	
+	private class Func {
+		public int numArgs;
+		public ArrayList<Type> argTypes;
+		public Type returnType;
+		public Func(ArrayList<Type> args, Type ret) {
+			numArgs = args.size();
+			argTypes = args;
+			returnType = ret;
+		}
+		public boolean validArgs(Type[] args){
+			if(args.length != argTypes.size()) return false;
+			for(int i = 0; i < args.length; i++)
+				if(argTypes.get(i) != args[i])
+					return false;
+			return true;
+		}
+	}
+	private HashMap<String, Func> functions;
+	
 	Parser() {
 		ints = new HashSet<>();
 		strings = new HashSet<>();
 		bools = new HashSet<>();
 		chars = new HashSet<>();
 		// Defining a map of all operations
+		functions = new HashMap<String, Func>();
 		String [][] opPairs = {
 			{"piggybacking off of", "+"},
 			{"drill down on", "-"},
@@ -100,11 +145,33 @@ public class Parser {
         }
 	}
 	
-	Parser(String filename) {
+	String curFunc = "";
+	
+	private class Func {
+		public int numArgs;
+		public ArrayList<Type> argTypes;
+		public Type returnType;
+		public Func(ArrayList<Type> args, Type ret) {
+			numArgs = args.size();
+			argTypes = args;
+			returnType = ret;
+		}
+		public boolean validArgs(Type[] args){
+			if(args.length != argTypes.size()) return false;
+			for(int i = 0; i < args.length; i++)
+				if(argTypes.get(i) != args[i])
+					return false;
+			return true;
+		}
+	}
+	private HashMap<String, Func> functions;
+	
+	Parser() {
 		ints = new HashSet<>();
 		strings = new HashSet<>();
 		bools = new HashSet<>();
 		chars = new HashSet<>();
+		functions = new HashMap<String, Func>();
 		// Defining a map of all operations
 		String [][] opPairs = {
 			{"piggybacking off of", "+"},
@@ -122,81 +189,99 @@ public class Parser {
 		for (String[] pair : opPairs) {
             operations.put(pair[0], pair[1]);
         }
-		
+	}
+	
+	public void parseText(String filename){
 		String text = readFile(filename);
-
 		// class name is file name
-		javaFile =  "public class " + filename.substring(0,filename.length()-6) + "{\n";
-
+		javaFile =  "public class " + filename.substring(0, filename.length()-6) + "{\n";
 		if (text == null) {
 			// prints file name -- BUG?
 			System.out.println("Invalid input file " + filename);
 			return;
 		}
-
-		// System.out.println(text); // for debugging purposes
-
 		try {
-			javaFile += parseProlog(text);
-			// System.out.println(javaFile); // for debugging
-			String body = getBody(text);
-			// System.out.println(body); // for debugging
-			parseBody(body);
-			javaFile += parseEpilog(text);
+			parseFunction(text);
 		}
 		catch (SyntaxError e){
 			System.out.println(e.getMessage());
 		}
-		javaFile += "\n}";
-
 		// Final line to end class def
 		javaFile += "\n}";
-
-		try (PrintWriter out = new PrintWriter(filename.substring(0,filename.length()-6) +".java")) {
-			out.println(javaFile);
-		}
-		catch (FileNotFoundException e){}
 	}
 	
-	public static void main (String[] args) {
-		if (args.length == 0) {
-			// if no file is supplied, return
-			System.out.println("Please input a file name.");
-			return;
+	public Type getReturnType(String text) {
+		Matcher m = epilog.matcher(text);
+		System.out.println("ret text: " + text);
+		if (!m.find()){
+			return null;
 		}
-		Parser parser = new Parser(args[0]);
-    }
-    
+		return findVarType(m.group(1));
+	}
+	
+	public String typeToString(Type t) {
+		switch(t) {
+			case INT:
+				return "int";
+			case BOOL:
+				return "boolean";
+			case CHAR:
+				return "char";
+			default:
+				return null;
+		}
+	}
+	
+	public String parseFunction(String text) throws SyntaxError{
+		Matcher fs = function.matcher(text);
+		while(fs.find()){
+			String func = fs.group();
+			System.out.println(func);
+			Matcher s = subject.matcher(func);
+			javaFile += parseProlog(func);
+			String body = getBody(func);
+			javaFile += parseBody(body);
+			javaFile += "\n}";
+			System.out.println(javaFile);
+		}
+		System.out.println(text);
+		return "";
+	}
+
 	/*
 	 * Get the body of the email
 	 */
     private String getBody(String text){
+        Matcher sm = subject.matcher(text);
         Matcher pm = prolog.matcher(text);
         Matcher em = epilog.matcher(text);
+        
+        String s = "";
         String p = "";
         String e = "";
-
+        
+		if(sm.find()) s = sm.group();
         if(pm.find()) p = pm.group();
         if(em.find()) e = em.group();
-		System.out.println(e);
 		// substract out prologue and epilogue to get body of text
-        text = text.substring(p.length(), text.length() - 1);
+		text = text.substring(s.length(), text.length());
+        text = text.substring(p.length(), text.length());
         text = text.substring(0, text.length() - e.length());
-
-        return text;
+        
+        return text.trim();
     }
     
     private String parseBody(String text) throws SyntaxError {
         var sentences = this.sentence.matcher(text);
 		String body = "";
-		System.out.println(text);
+		System.out.println("Body: " + text);
 		int idx = 0;
 		try {
 			while(sentences.find()) {
 				String sentence = sentences.group();
 				sentence = sentence.trim();
 				// System.out.println(sentence.trim()); // debugging
-				javaFile += parseSentence(sentence);
+				body += parseSentence(sentence);
 				idx++;
 			}
 		}
@@ -231,10 +316,9 @@ public class Parser {
     }
 	
 	private String parseEpilog(String text) throws SyntaxError{
-		Matcher prologMatch = prolog.matcher(text);
-
-		// No match found... throw error
-		
+		Matcher epilog = this.epilog.matcher(text);
+		if(!epilog.find())
+			throw new SyntaxError("Invalid sendoff");
 		javaFile += "\n}";
 		return "";
 	}
@@ -243,8 +327,16 @@ public class Parser {
 	 * transpile the prologue.
 	 */
 	private String parseProlog(String text) throws SyntaxError{
+		bools.clear();
+		ints.clear();
+		chars.clear();
+		Matcher sub = subject.matcher(text);
+		if (!sub.find()){
+			throw new SyntaxError("Couldn't find the subject heading for your email at: " + text);
+		}
+		String subject = sub.group(1);
+		System.out.println(subject);
 		Matcher prologMatch = prolog.matcher(text);
-
 		// No match found... throw error
 		if(!prologMatch.find()){
 			throw new SyntaxError("AHHH");
@@ -255,29 +347,76 @@ public class Parser {
 		String opening = prologMatch.group();
 		var var = this.var.matcher(opening); // get individual variable names from comma-separated list
 		int idx = 0;
-
+		this.curFunc = subject;
 		String body = "";
 		System.out.println(opening); // debugging
+		if(subject.equals("Main")){
+			subject = "main";
+			while(var.find()){
+				String curVar = var.group();
+	
+				if (curVar == "To whom it may concern,"){
+					break;
+				}
+	
+				switch (findVarType(curVar)){
+					case BOOL:
+						bools.add(curVar);
+						body += "Boolean " + curVar + " = Boolean.valueOf(args[" + idx+ "]);\n";
+					break;
+					case INT:
+						ints.add(curVar);
+						body += "Integer " + curVar + " = Integer.valueOf(args[" + idx + "]);\n";
+					break;
+					case CHAR:
+						chars.add(curVar);
+						body += "Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n";
+					break;
+					case WRONG:
+						throw new SyntaxError(
+							"We took issue with your addressing of " + curVar + "\n"
+							+ "Your email must be addressed to person(s) with name(s) starting with B, I, or S.\n"
+							+ "Please do better.\n"
+							+ "Sincerely, the email-team."
+						);
+				}
+				idx++;
+			}
+			functionStart += "public static void " + subject + "(String[] args) {\n";
+			functionStart += "if(args.length != " + (idx) + "){\n";
+			functionStart += "System.out.println(";
+			functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
+			functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
+			functionStart += "return;";
+			functionStart += "}";
 
+			functions.put(subject, new Func(new ArrayList<Type>(), Type.INT));
+			return functionStart + body + "\n";
+		}
+		
+		String args = "";
+		ArrayList<Type> argType = new ArrayList<>();
 		while(var.find()){
+			
 			String curVar = var.group();
-
 			if (curVar == "To whom it may concern,"){
 				break;
 			}
-
 			switch (findVarType(curVar)){
 				case BOOL:
+					argType.add(Type.BOOL);
 					bools.add(curVar);
-					body += "Boolean " + curVar + " = Boolean.valueOf(args[" + idx+ "]);\n";
+					args += "boolean " + curVar +",";
 				break;
 				case INT:
+					argType.add(Type.INT);
 					ints.add(curVar);
-					body += "Integer " + curVar + " = Integer.valueOf(args[" + idx + "]);\n";
+					args += "int " + curVar + ",";
 				break;
 				case CHAR:
+					argType.add(Type.CHAR);
 					chars.add(curVar);
-					body += "Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n";
+					args += "char " + curVar + ",";
 				break;
 				case WRONG:
 					throw new SyntaxError(
@@ -289,16 +428,79 @@ public class Parser {
 			}
 			idx++;
 		}
-
-		functionStart += "public static void main(String[] args) {\n";
-		functionStart += "if(args.length != " + (idx) + "){\n";
-		functionStart += "System.out.println(";
-		functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
-		functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
-		functionStart += "return;";
-		functionStart += "}";
-		return functionStart + body + "\n";
+		if(args.length() > 0)
+			args = args.substring(0, args.length() - 1);
+		functions.put(subject, new Func(argType, getReturnType(text)));
+		functionStart += "public static " + typeToString(getReturnType(text)) + " " + subject + "(" + args + ")" + "{\n";
+		System.out.println(functionStart);
+		return functionStart;
 	}
+	
+	private String parseReturn(String ret) throws SyntaxError{
+		Matcher r = return_pattern.matcher(ret);
+		if (!r.find())
+			return "";
+		System.out.println(r.group());
+		String toRet = r.group(1);
+		switch(functions.get(curFunc).returnType) {
+			case INT:
+				return "return " + parseIntExpr(toRet) + ";";
+			case BOOL:
+				return "return " + parseBoolExpr(toRet) + ";";
+		}
+		return "";
+	}
+	
+	
+	private String parseFunctionCall(String functionCall) throws SyntaxError{
+		Matcher r = call_pattern.matcher(functionCall);
+		if (!r.find())
+			return "";
+
+		System.out.println(r.group());
+		String funcName = r.group(1);
+		Func func = functions.get(funcName);
+		String args = r.group(2);
+		String[] argList = new String[func.numArgs];
+		System.out.println(func.argTypes.toString());
+		String rem = args;
+		for(int i = 0; i < func.numArgs; i++){
+			Matcher a = list.matcher(rem);
+			if(a.find()){
+				System.out.println(a.group(1));
+				System.out.println(a.group(2));
+				switch(func.argTypes.get(i)) {
+					case INT:
+						argList[i] = parseIntExpr(a.group(1));
+						break;
+					case BOOL:
+						argList[i] = parseBoolExpr(a.group(1));
+						break;
+					}   
+				rem = a.group(2);
+			}
+			else {
+				switch(func.argTypes.get(i)) {
+					case INT:
+						argList[i] = parseIntExpr(rem);
+						break;
+					case BOOL:
+						argList[i] = parseBoolExpr(rem);
+						break;
+				}   
+			}
+		}
+		String s = "";
+		for(int i = 0; i < func.numArgs; i++){
+			s += argList[i];
+			if (i != func.numArgs - 1){
+				s += ",";
+			}
+		}
+		return funcName +"(" + s + ");";
+	}
+	
+
 	
 	public String parseSentence(String cmd) throws SyntaxError {
 		Matcher m = statement.matcher(cmd);
@@ -324,13 +526,13 @@ public class Parser {
 			if(match.length() >  0) return match;
 			match = loop(expression);
 			if(match.length() > 0) return match;
-			// if (!match) match = parseEquality(expression);
-			// if (!match) match = parseIncrement(expression);
-			// if (!match) match = parseAdd(expression);
-			// if (!match) match = parseDecrement(expression);
-			// if (!match) match = parseSubtract(expression);
-			// if (!match) match = parseMultiply(expression);
-			// if (!match) match = parseDivide(expression);
+			match = print(expression);
+			if (match.length() >  0) return match;
+			match = parseReturn(expression);
+			if (match.length() >  0) return match;
+			match = parseFunctionCall(expression);
+			if (match.length() >  0) return match;
+			
 			throw new SyntaxError("Missing period.");
 		}
 		else {
@@ -357,15 +559,11 @@ public class Parser {
 
 	private String varAssign(String expression) throws SyntaxError {
 		Matcher assignment = varAssign.matcher(expression);
-
+		System.out.println(expression);
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
-			System.out.println(var);
-			System.out.println(val);
-			Type type = findVarType(var);
-			System.out.println(type);
-			// add declaration and assignment to output file
+			Type type = findVarType(var);			// add declaration and assignment to output file
 			switch(type) {
 				case WRONG:
 					return "";
@@ -485,6 +683,7 @@ public class Parser {
 		}
 		return noMatch.call(expr);
 	}
+	
 	private String getOp(String op) throws SyntaxError{
 		op = op.trim();
 		if(operations.get(op) != null){
@@ -494,6 +693,7 @@ public class Parser {
 			throw new SyntaxError("Invalid operation: " + op);
 		}
 	}
+	
 	/* Function that applies the supplied pattern to expr and 
 	* calls the corresponding expr according to the operation
 	*/
@@ -504,6 +704,7 @@ public class Parser {
 		Expr right,
 		Expr noMatch
 	) throws SyntaxError {
+		System.out.println(expr);
 		String out = "";
 		Matcher m = p.matcher(expr);
 		if(m.find()){
@@ -529,6 +730,7 @@ public class Parser {
 		}
 		return noMatch.call(expr);
 	}
+
 	// Calling it parseAtom since it's for parsing the most basic level (variable or literals)
 	private String parseAtom(
 		String atom, 
@@ -538,7 +740,7 @@ public class Parser {
 	) throws SyntaxError {
 		Matcher varMatcher = varPattern.matcher(atom);
 		Matcher valMatcher = valPattern.matcher(atom);
-		System.out.println(atom);
+		System.out.println("HERE:" + atom);
 		if(varMatcher.find()){
 			// Check if we have already declared the variable
 			if(scope.contains(atom))
@@ -560,7 +762,7 @@ public class Parser {
 			);
 		}
 	}
-	
+
 	private String parseComp(String comp) throws SyntaxError{
 		Matcher m = comp_expr.matcher(comp);
 		if(m.find()){
@@ -617,6 +819,19 @@ public class Parser {
 		);
 	}
 	
+	private String parseBoolExpr0(String expr) throws SyntaxError {
+		//<bool_expr> ::= <comp> | <bool_expr1>
+		// unaryExpr probably should be renamed 
+		// but basically just to call parseCompExpr if comp is a match
+		return unaryExpr(
+			expr, 
+			call_pattern,
+			"",
+			x->parseFunctionCall(x),
+			x->parseBoolExpr1(x)
+		);
+	}
+	
 	private String parseBoolExpr1(String expr) throws SyntaxError {
 		// <bool_expr1> ::= <bool_expr1> or <bool_expr2> | <bool_expr2>
 
@@ -666,10 +881,23 @@ public class Parser {
 			expr,
 			int_expr, 
 			x->parseIntExpr(x), 
-			x->parseIntExpr1(x), 
+			x->parseIntExpr0(x), 
+			x->parseIntExpr0(x)
+		);
+	}
+	private String parseIntExpr0(String expr) throws SyntaxError {
+		//<bool_expr> ::= <comp> | <bool_expr1>
+		// unaryExpr probably should be renamed 
+		// but basically just to call parseCompExpr if comp is a match
+		return unaryExpr(
+			expr, 
+			call_pattern,
+			"",
+			x->parseFunctionCall(x),
 			x->parseIntExpr1(x)
 		);
 	}
+	
 	private String parseIntExpr1(String expr) throws SyntaxError {
 		System.out.println(expr);
 		return binaryExpr(
@@ -683,11 +911,20 @@ public class Parser {
 	
 	private String parseInt(String _int) throws SyntaxError {
 		System.out.println(_int);
+		Matcher ints = intVal.matcher(_int);
+		if(ints.find()){
+			System.out.println(ints.group());
+			System.out.println("FUCK");
+		}
+		else {
+			System.out.println("FUCK");
+	
+		}
 		return parseAtom(
 			_int,
 			intVar,
 			intVal,
-			ints
+			this.ints
 		);
 	}
 
