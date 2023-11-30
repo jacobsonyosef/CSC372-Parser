@@ -4,8 +4,7 @@ import java.util.Scanner;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.io.File;
-import java.io.FileNotFoundException; 
-import java.util.Scanner; 
+import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.io.IOException;
@@ -44,14 +43,13 @@ public class Parser {
 	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
 	private Pattern int_expr = Pattern.compile("((.+) piggybacking off of (.+)|^(.+) drill down on (.+))");
-	private Pattern int_expr_2 = Pattern.compile("([^\\(]?.+) drill down on ([^\\(]?.+?)");
-	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+))");
+	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+)|^(.+) remains to be seen of (.+))");
 
 	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
 	private Pattern bool_expr2 = Pattern.compile("^(.+) and (.+)$"); // AND
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
-	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) greater than (.+)|(.+) less than (.+))");
+	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
 	private Pattern loop_start = Pattern.compile("^Suppose (.+):");
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
 	
@@ -88,6 +86,7 @@ public class Parser {
 			{"drill down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
+			{"remains to be seen of", "%"},
 			{"or", "||"},
 			{"and", "&&"},
 			{"not", "!"},
@@ -159,7 +158,6 @@ public class Parser {
 		catch (FileNotFoundException e){}
 	}
 	
-	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
 		if (args.length == 0) {
 			// if no file is supplied, return
@@ -317,7 +315,10 @@ public class Parser {
 			System.out.println("HEre");
 			match = print(expression);
 			if (match.length() >  0) return match;
-			match = evalExpr(expression);
+			try {
+				match = evalExpr(expression);
+			}
+			catch (SyntaxError e) {}
 			if(match.length() > 0) return match;
 			match = condition(expression);
 			if(match.length() >  0) return match;

@@ -17,7 +17,7 @@ public class Interactive {
 		while(!input.equals("Farewell")) {
 			// Matcher epilogMatcher = epilog.Matcher();
 			try {
-				parser.parseSentence(input);
+				System.out.println("Compiled Java code: " + parser.parseSentence(input));
 			}
 			catch(SyntaxError e) {
 				System.out.println("Sytax Error: " + e.getMessage());
