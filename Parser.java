@@ -115,13 +115,14 @@ public class Parser {
 		strings = new HashSet<>();
 		bools = new HashSet<>();
 		chars = new HashSet<>();
-		functions = new HashMap<String, Func>();
 		// Defining a map of all operations
+		functions = new HashMap<String, Func>();
 		String [][] opPairs = {
 			{"piggybacking off of", "+"},
 			{"drill down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
+			{"remains to be seen of", "%"},
 			{"or", "||"},
 			{"and", "&&"},
 			{"not", "!"},
@@ -133,7 +134,6 @@ public class Parser {
 		for (String[] pair : opPairs) {
             operations.put(pair[0], pair[1]);
         }
-	}
 	
 	public void parseText(String filename){
 		String text = readFile(filename);
@@ -397,19 +397,12 @@ public class Parser {
 	
 	private String parseFunctionCall(String functionCall) throws SyntaxError{
 		Matcher r = call_pattern.matcher(functionCall);
-		System.out.println("HERE" + functionCall);
 		if (!r.find())
 			return "";
-
-		System.out.println(r.group());
-		System.out.println(r.group(2));
-		System.out.println(r.group(3));
 		String funcName = r.group(2);
-		System.out.println(funcName);
 		Func func = functions.get(funcName);
 		String args = r.group(3);
 		String[] argList = new String[func.numArgs];
-		System.out.println(func.argTypes.toString());
 		String rem = args;
 		for(int i = 0; i < func.numArgs; i++){
 			Matcher a = list.matcher(rem);
@@ -434,7 +427,7 @@ public class Parser {
 					case BOOL:
 						argList[i] = parseBoolExpr(rem);
 						break;
-				}   
+				}
 			}
 		}
 		String s = "";
@@ -444,7 +437,6 @@ public class Parser {
 				s += ",";
 			}
 		}
-		System.out.println("HERE: " + funcName);
 		return funcName +"(" + s + ")";
 	}
 	
