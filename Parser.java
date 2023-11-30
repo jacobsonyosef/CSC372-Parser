@@ -17,6 +17,7 @@ public class Parser {
 		BOOL,
 		INT,
 		CHAR,
+		STRING,
 		WRONG
 	}
 
@@ -63,10 +64,12 @@ public class Parser {
 	private Pattern boolVar = Pattern.compile("^B.+$");
 	private Pattern intVar = Pattern.compile("^I.+$");
 	private Pattern charVar = Pattern.compile("^C.+$");
+	private Pattern stringVar = Pattern.compile("^S.+$");
 	
 	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
 	private Pattern intVal = Pattern.compile("^\\d+$");
 	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
+	private Pattern stringVal = Pattern.compile("^[a-zA-Z]+$");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
@@ -312,6 +315,8 @@ public class Parser {
 			System.out.println(match.length());
 			if(match.length() > 0) return match;
 			System.out.println("HEre");
+			match = evalExpr(expression);
+			if(match.length() > 0) return match;
 			match = condition(expression);
 			if(match.length() >  0) return match;
 			match = loop(expression);
@@ -386,6 +391,15 @@ public class Parser {
 						System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 
 						return "char " + var + " = " + "'" + val + "'" + ";\n";
+					}
+
+				case STRING:
+					if (strings.contains(var)) return var + " = " + "'" + val + "'" + ";\n";
+					else {
+						strings.add(var);
+						System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
+
+						return "String " + var + " = " + "\"" + val + "\"" + ";\n";
 					}
 			}
 		}
@@ -574,6 +588,14 @@ public class Parser {
 		throw new SyntaxError("Encountered the following invalid comparison:" + comp);
 	}
 
+	private String parseString(String string) throws SyntaxError {
+		Matcher m = stringVal.matcher(string);
+		if (m.find()) {
+			return m.group(1);
+		}
+		throw new SyntaxError("Encountered the following invalid String:" + m.group(1));
+	}
+
 	private String parseBoolExpr(String expr) throws SyntaxError {
 		//<bool_expr> ::= <comp> | <bool_expr1>
 		// unaryExpr probably should be renamed 
@@ -675,13 +697,14 @@ public class Parser {
 		Given the left (var) and right (val) sides of an assignment statement,
 		determines the type of assignment performed.
 	
-		Return Values: -1 for invalid, 0 for bool, 1 for int, 2 for char
+		Return Values: TYPE of var (INT, BOOL, CHAR, STRING, or WRONG)
 	*/
 	private Type findVarType(String var) {
 		Matcher[] m = {
 			boolVar.matcher(var), 
 			intVar.matcher(var), 
-			charVar.matcher(var)
+			charVar.matcher(var),
+			stringVar.matcher(var)
 		};
 		for(int i = 0; i < m.length; i++)
 			if(m[i].find()) return Type.values()[i];
@@ -692,7 +715,8 @@ public class Parser {
 		Matcher[] m = {
 			boolVal.matcher(val),
 			intVal.matcher(val), 
-			charVal.matcher(val)
+			charVal.matcher(val),
+			stringVal.matcher(val)
 		};
 		for(int i = 0; i < m.length; i++)
 			if(m[i].find()) return Type.values()[i];
