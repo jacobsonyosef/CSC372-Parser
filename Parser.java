@@ -71,10 +71,8 @@ public class Parser {
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
-	private Pattern loop_start = Pattern.compile("^Suppose (.+):");
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
 	
-	private Pattern loop_start = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+)");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
 	
@@ -88,17 +86,14 @@ public class Parser {
 	
 	private Pattern boolVal = Pattern.compile("^yep$|^nope$");
 	private Pattern intVal = Pattern.compile("^\\d+$");
-	private Pattern charVal = Pattern.compile("^[a-zA-Z]$");
-	private Pattern stringVal = Pattern.compile("^\"[a-zA-Z]+\"$");
+	private Pattern charVal = Pattern.compile("^[a-zA-Z0-9]$");
+	private Pattern stringVal = Pattern.compile("^\"[a-zA-Z0-9]+\"$");
 	
 	private HashSet<String> ints;
 	private HashSet<String> strings;
 	private HashSet<String> bools;
 	private HashSet<String> chars;
 	private HashMap<String, String> operations;
-
-	
-	String curFunc = "";
 	
 	private class Func {
 		public int numArgs;
@@ -117,53 +112,9 @@ public class Parser {
 			return true;
 		}
 	}
-	private HashMap<String, Func> functions;
-	
-	Parser() {
-		ints = new HashSet<>();
-		strings = new HashSet<>();
-		bools = new HashSet<>();
-		chars = new HashSet<>();
-		// Defining a map of all operations
-		functions = new HashMap<String, Func>();
-		String [][] opPairs = {
-			{"piggybacking off of", "+"},
-			{"drill down on", "-"},
-			{"joins forces with", "*"},
-			{"leverages", "/"},
-			{"remains to be seen of", "%"},
-			{"or", "||"},
-			{"and", "&&"},
-			{"not", "!"},
-			{"is on the same page as", "=="},
-			{"greater than", ">"},
-			{"less than", "<"}
-		};
-		operations = new HashMap<>();
-		for (String[] pair : opPairs) {
-            operations.put(pair[0], pair[1]);
-        }
-	}
 	
 	String curFunc = "";
 	
-	private class Func {
-		public int numArgs;
-		public ArrayList<Type> argTypes;
-		public Type returnType;
-		public Func(ArrayList<Type> args, Type ret) {
-			numArgs = args.size();
-			argTypes = args;
-			returnType = ret;
-		}
-		public boolean validArgs(Type[] args){
-			if(args.length != argTypes.size()) return false;
-			for(int i = 0; i < args.length; i++)
-				if(argTypes.get(i) != args[i])
-					return false;
-			return true;
-		}
-	}
 	private HashMap<String, Func> functions;
 	
 	Parser() {
