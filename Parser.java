@@ -134,6 +134,7 @@ public class Parser {
 		for (String[] pair : opPairs) {
             operations.put(pair[0], pair[1]);
         }
+	}
 	
 	public void parseText(String filename){
 		String text = readFile(filename);
@@ -185,7 +186,7 @@ public class Parser {
 			String body = getBody(func);
 			javaFile += parseBody(body);
 			javaFile += "\n}";
-			System.out.println(javaFile);
+			System.out.println(ints.toString());
 		}
 		System.out.println(text);
 		return "";
@@ -416,6 +417,9 @@ public class Parser {
 					case BOOL:
 						argList[i] = parseBoolExpr(a.group(1));
 						break;
+					case STRING:
+						argList[i] = parseStringExpr(rem);
+						break;
 					}   
 				rem = a.group(2);
 			}
@@ -426,6 +430,9 @@ public class Parser {
 						break;
 					case BOOL:
 						argList[i] = parseBoolExpr(rem);
+						break;
+					case STRING:
+						argList[i] = parseStringExpr(rem);
 						break;
 				}
 			}
@@ -509,18 +516,19 @@ public class Parser {
 				case BOOL:
 					if (bools.contains(var)) return  var + " = " + parseBoolExpr(val) + ";\n";
 					else {
+						String out = "boolean " + var + " = " + parseBoolExpr(val) + ";\n";
 						bools.add(var);
 						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
-						return "boolean " + var + " = " + parseBoolExpr(val) + ";\n";
+						return out;
 					}
 
 				case INT:
 					if (ints.contains(var)) return var + " = " + parseIntExpr(val) + ";\n";
 					else {
+						String out = "int " + var + " = " + parseIntExpr(val) + ";\n";
 						ints.add(var);
 						System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
-						return "int " + var + " = " + parseIntExpr(val) + ";\n";
-						
+						return out;
 					}
 
 				case CHAR:
@@ -535,10 +543,11 @@ public class Parser {
 				case STRING:
 					if (strings.contains(var)) return var + " = " + "'" + val + "'" + ";\n";
 					else {
+						String out = "String " + var + " = " + "" + val + "" + ";\n";
 						strings.add(var);
 						System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
 
-						return "String " + var + " = " + "" + val + "" + ";\n";
+						return out;
 					}
 			}
 		}
