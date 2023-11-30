@@ -53,15 +53,7 @@ public class Parser {
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
 	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
-	private Pattern equality = Pattern.compile("^(.+) says (.+)\\.");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
-	
-	private Pattern intInc = Pattern.compile("^piggybacking off of (.+)$");
-
-	private Pattern intDec = Pattern.compile("^drill down on (.+)$");
-	private Pattern intSub = Pattern.compile("^(.+) drill down on (.+)$");
-	private Pattern intMult = Pattern.compile("^(.+) joins forces with (.+)$");
-	private Pattern intDiv = Pattern.compile("^(.+) leverages (.+)$");
 	
 	private Pattern int_expr = Pattern.compile("((.+) piggybacking off of (.+)|^(.+) drill down on (.+))");
 	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+)|^(.+) remains to be seen of (.+))");
