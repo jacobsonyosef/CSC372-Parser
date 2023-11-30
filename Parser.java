@@ -51,7 +51,6 @@ public class Parser {
 	private Pattern return_pattern = Pattern.compile("RE: (.+)");
 	private Pattern call_pattern = Pattern.compile("(SEE: (.+) with: (.+))");
 	private Pattern sentence = Pattern.compile(".+?(\\.|!)");
-	// THIS MIGHT CAUSE BUGS?
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
