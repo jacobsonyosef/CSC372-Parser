@@ -11,5 +11,16 @@ Run the transpiled code `java <file>`
 
 See tutorial.pdf
 
+### Valid Programs:
+
+1. Sum.email
+2. IntEmail.email
+3. BoolEmail.email
+
+### Invalid Programs:
+1. IncorrectAssignment.email
+2. EarlierVariable.email
+3. NoPeriod.email
+
 ## Video Discussion
 
