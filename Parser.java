@@ -15,7 +15,6 @@ public class Parser {
 	private static final boolean debugMode = false;	// used to toggle debug output
 	private static boolean verboseOutput = false;
 
-	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
 		if (args.length == 0) {
 			// if no file is supplied, return
@@ -46,17 +45,13 @@ public class Parser {
 		WRONG
 	}
 	
-	// managing scope in functions?
-	// declaring a new function for parser
-	// Subject: Names...
-	// TODO mod operator
 	private static Pattern removeWhiteSpace = Pattern.compile(".+");
 	private static Pattern function_pattern = Pattern.compile("Subject: ([^ ]+?)\\. ((Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, ).+? Best, [BICS]([a-zA-Z]+)\\.");
 
 	private String javaFile;
 	private Pattern subject = Pattern.compile("Subject: ([^ ]+)\\. ");
 	private Pattern prolog = Pattern.compile("(Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern[,\\.]{1} )");
-	// change epilog?
+	
 	private Pattern epilog = Pattern.compile("Best, ([BICS]([a-zA-Z]+))");
 	private Pattern function = Pattern.compile("Subject: ([^ ]+)\\. (Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern, ).+?(Best, ([BICS]([a-zA-Z]+)))");
 	private Pattern return_pattern = Pattern.compile("RE: (.+)");
@@ -129,7 +124,7 @@ public class Parser {
 		functions = new HashMap<String, Func>();
 		String [][] opPairs = {
 			{"piggybacks off of", "+"},
-			{"drill down on", "-"},
+			{"drills down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
 			{"remains to be seen of", "%"},
