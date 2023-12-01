@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 public class Parser {
+	private static final boolean debugMode = false;	// used to toggle debug output
+	private static boolean verboseOutput = false;
+
 	// main() code adapted from Parser.java from the class resources
 	public static void main (String[] args) {
 		if (args.length == 0) {
@@ -19,6 +22,14 @@ public class Parser {
 			System.out.println("Please input a file name.");
 			return;
 		}
+
+		if (args.length > 1) {
+			if (args[args.length-1].equals("-v")) {
+				System.out.println("Verbose output enabled.");
+				verboseOutput = true;
+			}
+		}
+
 		Parser parser = new Parser();
 		parser.parseText(args[0]);
 		try (PrintWriter out = new PrintWriter(args[0].substring(0,args[0].length()-6) +".java")) {
@@ -54,7 +65,7 @@ public class Parser {
 	private Pattern statement = Pattern.compile("(.+)[^.!]");
 	private Pattern varAssign = Pattern.compile("^([a-zA-Z]+) said (.+)$");
 	
-	private Pattern int_expr = Pattern.compile("((.+) piggybacking off of (.+)|^(.+) drill down on (.+))");
+	private Pattern int_expr = Pattern.compile("((.+) piggybacks off of (.+)|^(.+) drills down on (.+))");
 	private Pattern int_expr1 = Pattern.compile("(^(.+) joins forces with (.+)|^(.+) leverages (.+)|^(.+) remains to be seen of (.+))");
 	
 	private Pattern bool_expr1 = Pattern.compile("(.+) or (.+)"); // OR
@@ -156,7 +167,7 @@ public class Parser {
 	
 	public Type getReturnType(String text) {
 		Matcher m = epilog.matcher(text);
-		System.out.println("ret text: " + text);
+		if (debugMode)	System.out.println("ret text: " + text);
 		if (!m.find()){
 			return null;
 		}
@@ -185,9 +196,9 @@ public class Parser {
 			String body = getBody(func);
 			javaFile += parseBody(body);
 			javaFile += "\n}";
-			System.out.println(ints.toString());
+			if (debugMode)	System.out.println(ints.toString());
 		}
-		System.out.println(text);
+		if (debugMode)	System.out.println(text);
 		return "";
 	}
 
@@ -217,7 +228,7 @@ public class Parser {
     private String parseBody(String text) throws SyntaxError {
         var sentences = this.sentence.matcher(text);
 		String body = "";
-		System.out.println("Body: " + text);
+		if (debugMode)	System.out.println("Body: " + text);
 		int idx = 0;
 		try {
 			while(sentences.find()) {
@@ -278,7 +289,7 @@ public class Parser {
 			throw new SyntaxError("Couldn't find the subject heading for your email at: " + text);
 		}
 		String subject = sub.group(1);
-		System.out.println(subject);
+		if (debugMode)	System.out.println(subject);
 		Matcher prologMatch = prolog.matcher(text);
 		// No match found... throw error
 		if(!prologMatch.find()){
@@ -292,7 +303,7 @@ public class Parser {
 		int idx = 0;
 		this.curFunc = subject;
 		String body = "";
-		System.out.println(opening); // debugging
+		if (debugMode)	System.out.println(opening);
 		if(subject.equals("Main")){
 			subject = "main";
 			while(var.find()){
@@ -375,7 +386,7 @@ public class Parser {
 			args = args.substring(0, args.length() - 1);
 		functions.put(subject, new Func(argType, getReturnType(text)));
 		functionStart += "public static " + typeToString(getReturnType(text)) + " " + subject + "(" + args + ")" + "{\n";
-		System.out.println(functionStart);
+		if (debugMode)	System.out.println(functionStart);
 		return functionStart;
 	}
 	
@@ -383,7 +394,7 @@ public class Parser {
 		Matcher r = return_pattern.matcher(ret);
 		if (!r.find())
 			return "";
-		System.out.println(r.group());
+		if (debugMode)	System.out.println(r.group());
 		String toRet = r.group(1);
 		switch(functions.get(curFunc).returnType) {
 			case INT:
@@ -407,8 +418,10 @@ public class Parser {
 		for(int i = 0; i < func.numArgs; i++){
 			Matcher a = list.matcher(rem);
 			if(a.find()){
-				System.out.println(a.group(1));
-				System.out.println(a.group(2));
+				if (debugMode) {
+					System.out.println(a.group(1));
+					System.out.println(a.group(2));
+				}
 				switch(func.argTypes.get(i)) {
 					case INT:
 						argList[i] = parseIntExpr(a.group(1));
@@ -455,10 +468,10 @@ public class Parser {
 		if (m.find()) {
 			String expression = m.group();
 
-			System.out.println(expression);
+			if (debugMode)	System.out.println(expression);
 			match = varAssign(expression);
-			System.out.println(match);
-			System.out.println(match.length());
+			if (debugMode)	System.out.println(match);
+			if (debugMode)	System.out.println(match.length());
 			if(match.length() >  0) return match + ";";
 			match = loop(expression);
 			if (match.length() >  0) return match + ";";
@@ -495,18 +508,18 @@ public class Parser {
 			return "";
 		String expr = m.group(1);
 		String toString = evalExpr(expr);
-		System.out.println(toString);
+		if (debugMode)	System.out.println(toString);
 		return "System.out.print(" + toString + ");\n";
 	}
 
 	private String varAssign(String expression) throws SyntaxError {
 		Matcher assignment = varAssign.matcher(expression);
-		System.out.println("assign: "+ expression);
+		if (debugMode)	System.out.println("assign: "+ expression);
 		if (assignment.find()) {
 			String var = assignment.group(1);
 			String val = assignment.group(2);
 			Type type = findVarType(var);			// add declaration and assignment to output file
-			System.out.println("assign: " + val);
+			if (debugMode)	System.out.println("assign: " + val);
 			switch(type) {
 				case WRONG:
 					return "";
@@ -515,7 +528,7 @@ public class Parser {
 					else {
 						String out = "boolean " + var + " = " + parseBoolExpr(val);
 						bools.add(var);
-						System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
+						if (verboseOutput)	System.out.printf("Assigning bool value of %s to variable name %s\n", val, var);
 						return out;
 					}
 
@@ -524,7 +537,7 @@ public class Parser {
 					else {
 						String out = "int " + var + " = " + parseIntExpr(val);
 						ints.add(var);
-						System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
+						if (verboseOutput)	System.out.printf("Assigning int value of %s to variable name %s\n", val, var);
 						return out;
 					}
 
@@ -532,7 +545,7 @@ public class Parser {
 					if (chars.contains(var)) return var + " = " + "'" + val + "'";
 					else {
 						chars.add(var);
-						System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
+						if (verboseOutput)	System.out.printf("Assigning char value of %s to variable name %s\n", val, var);
 
 						return "char " + var + " = " + "'" + val + "'";
 					}
@@ -542,7 +555,7 @@ public class Parser {
 					else {
 						String out = "String " + var + " = " + "" + val;
 						strings.add(var);
-						System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
+						if (verboseOutput)	System.out.printf("Assigning string value of %s to variable name %s\n", val, var);
 
 						return out;
 					}
@@ -588,13 +601,13 @@ public class Parser {
 	
 	private String loop(String loop) throws SyntaxError {
 		Matcher m = this.loop.matcher(loop);
-		System.out.println("LOOP " + loop);
+		if (debugMode)	System.out.println("LOOP " + loop);
 		if(!m.find()){
 			return "";
 		}
-		System.out.println("LOOP");
+		if (debugMode)	System.out.println("LOOP");
 		String condition = parseBoolExpr(m.group(1));
-		System.out.println("LIST:" +m.group(2));
+		if (debugMode)	System.out.println("LIST:" +m.group(2));
 		String list = parseList(m.group(2));
 		String out =  "while (" +condition + ")";
 		out += "\n" + " {" + list + "}";
@@ -603,7 +616,7 @@ public class Parser {
 	
 	private String parseList(String in) throws SyntaxError{
 		String out = "";
-		System.out.println("LIST");
+		if (debugMode)	System.out.println("LIST");
 		Matcher l = list.matcher(in);
 		for(String el : in.split(",")){
 			out += parseSentence(el.strip());
@@ -624,10 +637,10 @@ public class Parser {
 	) throws SyntaxError {
 		String out = "";
 		Matcher m = p.matcher(expr);
-		System.out.println("HERE" + expr);
+		if (debugMode)	System.out.println("HERE" + expr);
 		if(m.find()){
 			String e1 = m.group(1);
-			System.out.println("CALL");
+			if (debugMode)	System.out.println("CALL");
 			return "(" + op + match.call(e1) + ")";
 		}
 		return noMatch.call(expr);
@@ -653,13 +666,13 @@ public class Parser {
 		Expr right,
 		Expr noMatch
 	) throws SyntaxError {
-		System.out.println(expr);
+		if (debugMode)	System.out.println(expr);
 		String out = "";
 		Matcher m = p.matcher(expr);
 		if(m.find()){
 			String e1 = m.group(1);
 			String e2 = m.group(2);
-			System.out.println(m.groupCount());
+			if (debugMode)	System.out.println(m.groupCount());
 
 			// Hack to generalize around the fact that using '|'
 			// to match multiple groups ends up putting the values in weird groups
@@ -669,8 +682,10 @@ public class Parser {
 					if(m.group(i) != null){
 						e1 = m.group(i);
 						e2 = m.group(i + 1);
-						System.out.println(e1);
-						System.out.println(e2);
+						if (debugMode) {
+							System.out.println(e1);
+							System.out.println(e2);
+						}
 					}
 				}
 			}
@@ -689,7 +704,7 @@ public class Parser {
 	) throws SyntaxError {
 		Matcher varMatcher = varPattern.matcher(atom);
 		Matcher valMatcher = valPattern.matcher(atom);
-		System.out.println("HERE:" + atom);
+		if (debugMode)	System.out.println("HERE:" + atom);
 		if(varMatcher.find()){
 			// Check if we have already declared the variable
 			if(scope.contains(atom))
@@ -794,7 +809,7 @@ public class Parser {
 	}
 	private String parseBoolExpr2(String expr) throws SyntaxError {
 		//<bool_expr2> ::= <bool_expr2> and <bool_expr3> | <bool_expr3>
-		System.out.println(expr);
+		if (debugMode)	System.out.println(expr);
 		return binaryExpr(
 			expr, 
 			bool_expr2, 
@@ -825,7 +840,7 @@ public class Parser {
 	}
 
 	private String parseIntExpr(String expr) throws SyntaxError {
-		System.out.println(expr);
+		if (debugMode)	System.out.println(expr);
 		return binaryExpr(
 			expr,
 			int_expr, 
@@ -848,7 +863,7 @@ public class Parser {
 	}
 	
 	private String parseIntExpr1(String expr) throws SyntaxError {
-		System.out.println(expr);
+		if (debugMode)	System.out.println(expr);
 		return binaryExpr(
 			expr,
 			int_expr1, 
