@@ -23,4 +23,4 @@ See tutorial.pdf
 3. NoPeriod.email
 
 ## Video Discussion
-
+https://youtu.be/gn5Ywq30A6I
