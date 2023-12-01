@@ -1,20 +1,20 @@
 Subject: Main.
 Dear Ian, Iago,
-    Sarah said "Let's highlight the integer operators". Highlight Sarah.
+    Sarah said "Let's highlight the integer operators". Highlight Sarah. Highlight "\n".
     Isaac said Ian piggybacks off of Iago.
-    Highlight Isaac.
+    Highlight Isaac. Highlight "\n".
     Isabella said Iago drills down on Ian.
-    Highlight Isabella.
+    Highlight Isabella. Highlight "\n".
     Isadora said Isabella joins forces with Isaac.
-    Highlight Isadora.
-    Highlight Isadora leverages Isabella.
+    Highlight Isadora. Highlight "\n".
+    Highlight Isadora leverages Isabella. Highlight "\n".
     Isak said Isadora remains to be seen of Isabella.
 
-    Sandra said "Now let's highlight the comparison operators". Highlight Sandra!
-    Bill said Isaac is less than Ian. Highlight Bill.
-    Bob said Iago is greater than Isadora. Highlight Bob.
-    Billy said Isabella is on the same page as Iago. Highlight Billy.
+    Sandra said "Now let's highlight the comparison operators". Highlight Sandra! Highlight "\n".
+    Bill said Isaac is less than Ian. Highlight Bill. Highlight "\n".
+    Bob said Iago is greater than Isadora. Highlight Bob. Highlight "\n".
+    Billy said Isabella is on the same page as Iago. Highlight Billy. Highlight "\n".
 
     Sophie said "The equality operator can also be used on strings and bools".
-    Highlight Bob is on the same page as Bill.
+    Highlight Bob is on the same page as Bill. Highlight "\n".
 Best, Ian.
