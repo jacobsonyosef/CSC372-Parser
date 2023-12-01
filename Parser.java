@@ -1,8 +1,10 @@
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Scanner;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -44,12 +46,17 @@ public class Parser {
 		WRONG
 	}
 	
+	// managing scope in functions?
+	// declaring a new function for parser
+	// Subject: Names...
+	// TODO mod operator
 	private static Pattern removeWhiteSpace = Pattern.compile(".+");
+	private static Pattern function_pattern = Pattern.compile("Subject: ([^ ]+?)\\. ((Dear)( [BICS]([a-zA-Z]+), )+|To whom it may concern, ).+? Best, [BICS]([a-zA-Z]+)\\.");
 
 	private String javaFile;
 	private Pattern subject = Pattern.compile("Subject: ([^ ]+)\\. ");
 	private Pattern prolog = Pattern.compile("(Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern[,\\.]{1} )");
-
+	// change epilog?
 	private Pattern epilog = Pattern.compile("Best, ([BICS]([a-zA-Z]+))");
 	private Pattern function = Pattern.compile("Subject: ([^ ]+)\\. (Dear( [BICS]([a-zA-Z]+?)[,\\.]{1})+|To whom it may concern, ).+?(Best, ([BICS]([a-zA-Z]+)))");
 	private Pattern return_pattern = Pattern.compile("RE: (.+)");
@@ -67,6 +74,7 @@ public class Parser {
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
 	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+) Thanks$");
+	
 	
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+) Thanks");
 	private Pattern list = Pattern.compile("(.+?), (.+)");
@@ -99,7 +107,13 @@ public class Parser {
 			argTypes = args;
 			returnType = ret;
 		}
-	
+		public boolean validArgs(Type[] args){
+			if(args.length != argTypes.size()) return false;
+			for(int i = 0; i < args.length; i++)
+				if(argTypes.get(i) != args[i])
+					return false;
+			return true;
+		}
 	}
 	
 	String curFunc = "";
@@ -115,7 +129,7 @@ public class Parser {
 		functions = new HashMap<String, Func>();
 		String [][] opPairs = {
 			{"piggybacks off of", "+"},
-			{"drills down on", "-"},
+			{"drill down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
 			{"remains to be seen of", "%"},
