@@ -591,6 +591,7 @@ public class Parser {
 		}
 		catch(SyntaxError e){}
 		try {
+
 			return parseBoolExpr(expr);
 		}
 		catch(SyntaxError e){}
