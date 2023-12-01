@@ -62,7 +62,7 @@ public class Parser {
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
-	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+)$");
+	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+) Thanks$");
 	
 	
 	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+) Thanks");
