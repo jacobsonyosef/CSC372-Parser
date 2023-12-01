@@ -1,4 +1,7 @@
-# ReadME
+# README
+
+## Video Discussion
+https://youtu.be/gn5Ywq30A6I
 
 ## Running Programs
 
@@ -22,5 +25,3 @@ See tutorial.pdf
 2. EarlierVariable.email
 3. NoPeriod.email
 
-## Video Discussion
-https://youtu.be/gn5Ywq30A6I
