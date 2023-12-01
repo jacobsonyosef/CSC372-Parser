@@ -182,6 +182,8 @@ public class Parser {
 				return "boolean";
 			case CHAR:
 				return "char";
+			case STRING:
+				return "String";
 			default:
 				return null;
 		}
@@ -272,7 +274,7 @@ public class Parser {
 	private String parseEpilog(String text) throws SyntaxError{
 		Matcher epilog = this.epilog.matcher(text);
 		if(!epilog.find())
-			throw new SyntaxError("Invalid sendoff");
+			throw new SyntaxError("Looks like there's an issue with the sign-off: " + text);
 		javaFile += "\n}";
 		return "";
 	}
@@ -293,7 +295,7 @@ public class Parser {
 		Matcher prologMatch = prolog.matcher(text);
 		// No match found... throw error
 		if(!prologMatch.find()){
-			throw new SyntaxError("AHHH");
+			throw new SyntaxError("It looks like there's an issue with the greeting: " + text);
 		}
 		
 		String functionStart = "";
@@ -326,6 +328,9 @@ public class Parser {
 						chars.add(curVar);
 						body += "Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n";
 					break;
+					case STRING:
+						strings.add(curVar);
+						body += "String " + curVar + " = args[" + idx + "]);\n";
 					case WRONG:
 						throw new SyntaxError(
 							"We took issue with your addressing of " + curVar + "\n"
@@ -372,6 +377,10 @@ public class Parser {
 					chars.add(curVar);
 					args += "char " + curVar + ",";
 				break;
+				case STRING:
+					argType.add(Type.STRING);
+					strings.add(curVar);
+					args += "String " + curVar + ",";
 				case WRONG:
 					throw new SyntaxError(
 						"We took issue with your addressing of " + curVar + "\n"
@@ -401,6 +410,10 @@ public class Parser {
 				return "return " + parseIntExpr(toRet);
 			case BOOL:
 				return "return " + parseBoolExpr(toRet);
+			case STRING:
+				return "return " + parseStringExpr(toRet);
+			case WRONG:
+				throw new SyntaxError("Sorry, but it looks like you used an invalid sign-off name: '" + toRet + "'.\nPlease use a name starting with B, I, or S.");
 		}
 		return "";
 	}
@@ -432,7 +445,9 @@ public class Parser {
 					case STRING:
 						argList[i] = parseStringExpr(rem);
 						break;
-					}   
+					case WRONG:
+						throw new SyntaxError("Please check the name(s) of your addressee(s): '" + rem + "'.\nPlease remember to only use names starting with B, I, or S.");
+				}
 				rem = a.group(2);
 			}
 			else {
@@ -446,6 +461,8 @@ public class Parser {
 					case STRING:
 						argList[i] = parseStringExpr(rem);
 						break;
+					case WRONG:
+						throw new SyntaxError("Please check the name(s) of your addressee(s): '" + rem + "'.\nPlease remember to only use names starting with B, I, or S.");
 				}
 			}
 		}
