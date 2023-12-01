@@ -199,6 +199,8 @@ public class Parser {
 			javaFile += parseBody(body);
 			javaFile += "\n}";
 			if (debugMode)	System.out.println(ints.toString());
+
+			if (verboseOutput)	System.out.println("Parsing '" + text + "' as function declaration.");
 		}
 		if (debugMode)	System.out.println(text);
 		return "";
@@ -423,9 +425,13 @@ public class Parser {
 		Matcher r = call_pattern.matcher(functionCall);
 		if (!r.find())
 			return "";
+
 		String funcName = r.group(2);
 		Func func = functions.get(funcName);
 		String args = r.group(3);
+
+		if (verboseOutput)	System.out.println("Parsing '" + functionCall + "' as function call with name '" + funcName + "' and arguments '" + args + "'.");
+
 		String[] argList = new String[func.numArgs];
 		String rem = args;
 		for(int i = 0; i < func.numArgs; i++){
@@ -508,7 +514,6 @@ public class Parser {
 			throw new SyntaxError("Missing period.");
 		}
 		else {
-			System.out.println("Syntax error: missing period.");
 			throw new SyntaxError("Missing period.");
 		}
 	}
@@ -525,6 +530,9 @@ public class Parser {
 			return "";
 		String expr = m.group(1);
 		String toString = evalExpr(expr);
+
+		if (verboseOutput)	System.out.println("Parsing print operation on the string '" + toString + "'.");
+
 		if (debugMode)	System.out.println(toString);
 		return "System.out.print(" + toString + ");\n";
 	}
@@ -596,7 +604,7 @@ public class Parser {
 		}
 		catch (SyntaxError e) {
 			throw new SyntaxError(
-				"Expration?"
+				"It seems you have a formatting issue here: '" + expr + "'."
 			);
 		}
 	}
@@ -610,6 +618,9 @@ public class Parser {
 		String condition = parseBoolExpr(m.group(1));
 		String list = parseList(m.group(2));
 		String otherwise = parseList(m.group(3));
+
+		if (verboseOutput)	System.out.println("Parsing conditional with condition '" + condition + "', then '" + list + "', and otherwise '" + otherwise + "'.");
+
 		String out =  "if (" +condition + ")";
 		out += "\n" + " {" + list + "}";
 		out +=  "\n" + "else {" + otherwise + "}";
@@ -626,6 +637,9 @@ public class Parser {
 		String condition = parseBoolExpr(m.group(1));
 		if (debugMode)	System.out.println("LIST:" +m.group(2));
 		String list = parseList(m.group(2));
+
+		if (verboseOutput)	System.out.println("Parsing while loop with condition '" + condition + "' and body '" + list + "'.");
+
 		String out =  "while (" +condition + ")";
 		out += "\n" + " {" + list + "}";
 		return out;
@@ -669,7 +683,7 @@ public class Parser {
 			return operations.get(op);
 		}
 		else {
-			throw new SyntaxError("Invalid operation: " + op);
+			throw new SyntaxError("There seems to be an issue with the operation: '" + op + "'.");
 		}
 	}
 	
@@ -707,6 +721,9 @@ public class Parser {
 				}
 			}
 			String op = expr.substring(e1.length(), expr.length() - e2.length()).trim();
+
+			if (verboseOutput)	System.out.println("Parsing '" + expr + "' as '(" + left.call(e1) + " " +  getOp(op) + " " + right.call(e2) + ")'.");
+
 			return "(" + left.call(e1) + " " +  getOp(op) + " " + right.call(e2) + ")";
 		}
 		return noMatch.call(expr);
@@ -774,7 +791,7 @@ public class Parser {
 				);
 			}
 		}
-		throw new SyntaxError("Encountered the following invalid comparison:" + comp);
+		throw new SyntaxError("You should check your comparison here: '" + comp + "'.");
 	}
 
 	private String parseStringExpr(String expr) throws SyntaxError {
@@ -788,9 +805,7 @@ public class Parser {
 	}
 
 	private String parseBoolExpr(String expr) throws SyntaxError {
-		//<bool_expr> ::= <comp> | <bool_expr1>
-		// unaryExpr probably should be renamed 
-		// but basically just to call parseCompExpr if comp is a match
+
 		return unaryExpr(
 			expr, 
 			comp_expr,
@@ -857,6 +872,7 @@ public class Parser {
 	}
 
 	private String parseIntExpr(String expr) throws SyntaxError {
+
 		if (debugMode)	System.out.println(expr);
 		return binaryExpr(
 			expr,
@@ -898,16 +914,6 @@ public class Parser {
 			this.ints
 		);
 	}
-
-	private String parseCharExpr(String expr) {
-		// TODO
-		return "";
-	}
-
-	private String string_expr(String expr) {
-		//TODO
-		return "";
-	}
 	
 	/*
 		Given the left (var) and right (val) sides of an assignment statement,
@@ -938,19 +944,6 @@ public class Parser {
 			if(m[i].find()) return Type.values()[i];
 		return Type.WRONG;
 	}
-	
-	private Type findAssignmentType(String var, String val) {
-		Type varType = findVarType(var);
-		Type valType = findValType(val);
-		
-		if(varType == valType) return varType;
-		
-		return Type.WRONG;
-	}
-	
-	// private  boolean parseConditional(String expression) {
-
-	// }
 
 }
 
