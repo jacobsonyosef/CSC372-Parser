@@ -6,7 +6,7 @@ https://youtu.be/gn5Ywq30A6I
 ## Running Programs
 
 Compile the parser `javac Parser.java`
-Transpile a program `java Parser <file>.email`
+Transpile a program `java Parser <file>.email -v` (`-v` is an optional flag which enables explicit parser output)
 Compile the transpiled code `javac <file>.java`
 Run the transpiled code `java <file>`
 
