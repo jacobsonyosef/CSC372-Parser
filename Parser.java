@@ -115,7 +115,7 @@ public class Parser {
 		functions = new HashMap<String, Func>();
 		String [][] opPairs = {
 			{"piggybacks off of", "+"},
-			{"drill down on", "-"},
+			{"drills down on", "-"},
 			{"joins forces with", "*"},
 			{"leverages", "/"},
 			{"remains to be seen of", "%"},
