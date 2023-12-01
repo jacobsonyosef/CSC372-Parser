@@ -1,6 +1,6 @@
 # README
 
-## Video Discussion
+## Presentation
 https://youtu.be/gn5Ywq30A6I
 
 ## Running Programs
