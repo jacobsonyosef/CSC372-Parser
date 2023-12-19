@@ -94,6 +94,13 @@ public class Parser {
 	private HashSet<String> bools;
 	private HashSet<String> chars;
 	private HashMap<String, String> operations;
+
+	private int indentLevel = 0;
+	private String formatString(String s){
+		for(int i = 0; i < indentLevel; i++) s = "\t" + s;
+		return s;
+	}
+
 	
 	private class Func {
 		public int numArgs;
@@ -147,6 +154,7 @@ public class Parser {
 		String text = readFile(filename);
 		// class name is file name
 		javaFile =  "public class " + filename.substring(0, filename.length()-6) + "{\n";
+		indentLevel += 1;
 		if (text == null) {
 			// prints file name -- BUG?
 			System.out.println("Invalid input file " + filename);
@@ -188,13 +196,15 @@ public class Parser {
 	
 	public String parseFunction(String text) throws SyntaxError{
 		Matcher fs = function.matcher(text);
+
 		while(fs.find()){
 			String func = fs.group();
 			Matcher s = subject.matcher(func);
 			javaFile += parseProlog(func);
 			String body = getBody(func);
 			javaFile += parseBody(body);
-			javaFile += "\n}";
+			indentLevel -=1;
+			javaFile += formatString("}");
 			if (debugMode)	System.out.println(ints.toString());
 
 			if (verboseOutput)	System.out.println("Parsing '" + text + "' as function declaration.");
@@ -307,6 +317,7 @@ public class Parser {
 		if (debugMode)	System.out.println(opening);
 		if(subject.equals("Main")){
 			subject = "main";
+			indentLevel += 1;
 			while(var.find()){
 				String curVar = var.group();
 	
@@ -317,19 +328,19 @@ public class Parser {
 				switch (findVarType(curVar)){
 					case BOOL:
 						bools.add(curVar);
-						body += "Boolean " + curVar + " = Boolean.valueOf(args[" + idx+ "]);\n";
+						body += formatString("Boolean " + curVar + " = Boolean.valueOf(args[" + idx+ "]);\n");
 					break;
 					case INT:
 						ints.add(curVar);
-						body += "Integer " + curVar + " = Integer.valueOf(args[" + idx + "]);\n";
+						body += formatString("Integer " + curVar + " = Integer.valueOf(args[" + idx + "]);\n");
 					break;
 					case CHAR:
 						chars.add(curVar);
-						body += "Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n";
+						body += formatString("Char " + curVar + " = Character.valueOf(args[" + idx + "]);\n");
 					break;
 					case STRING:
 						strings.add(curVar);
-						body += "String " + curVar + " = args[" + idx + "]);\n";
+						body += formatString("String " + curVar + " = args[" + idx + "]);\n");
 					case WRONG:
 						throw new SyntaxError(
 							"We took issue with your addressing of " + curVar + "\n"
@@ -340,13 +351,17 @@ public class Parser {
 				}
 				idx++;
 			}
-			functionStart += "public static void " + subject + "(String[] args) {\n";
-			functionStart += "if(args.length != " + (idx) + "){\n";
-			functionStart += "System.out.println(";
+			indentLevel -= 1;
+			functionStart += formatString("public static void " + subject + "(String[] args) {\n");
+			indentLevel += 1;
+			functionStart += formatString("if(args.length != " + (idx) + "){\n");
+			indentLevel += 1;
+			functionStart += formatString("System.out.println(");
 			functionStart += "\"There was an error encountered in delivering the contents of your email\");\n";
-			functionStart += "System.out.println(\"(this means that there were too few arguments supplied)\");\n";
-			functionStart += "return;";
-			functionStart += "}";
+			functionStart += formatString("System.out.println(\"(this means that there were too few arguments supplied)\");\n");
+			functionStart += formatString("return;");
+			indentLevel -= 1;
+			functionStart += formatString("}\n");
 
 			functions.put(subject, new Func(new ArrayList<Type>(), Type.INT));
 			return functionStart + body + "\n";
@@ -487,28 +502,23 @@ public class Parser {
 		
 		if (m.find()) {
 			String expression = m.group();
-
 			if (debugMode)	System.out.println(expression);
-			match = varAssign(expression);
-			if (debugMode)	System.out.println(match);
-			if (debugMode)	System.out.println(match.length());
-			if(match.length() >  0) return match + ";";
-			match = loop(expression);
-			if (match.length() >  0) return match + ";";
-			match = condition(expression);
-			if(match.length() > 0) return match + ";";
-			match = print(expression);
-			if (match.length() >  0) return match + ";";
-			match = parseReturn(expression);
-			if (match.length() >  0) return match + ";";
-			match = parseFunctionCall(expression);
-			if (match.length() >  0) return match + ";";
-			try {
-				match = evalExpr(expression);
+			if (match.length() == 0) match = varAssign(expression);
+			if (match.length() == 0) match = loop(expression);
+			if (match.length() == 0) match = condition(expression);
+			if (match.length() == 0) match = print(expression);
+			if (match.length() == 0) match = parseReturn(expression);
+			if (match.length() == 0) match = parseFunctionCall(expression);
+			if (match.length() == 0){
+				try {
+					match = evalExpr(expression);
+				}
+				catch (SyntaxError e) {
+					throw new SyntaxError("Unable to match the following statement to an actual operation:\n" + expression);
+				}
 			}
-			catch (SyntaxError e) {}
-			if (match.length() >  0) return match + ";";
-			throw new SyntaxError("Missing period.");
+			return formatString(match) + ";\n";
+			
 		}
 		else {
 			throw new SyntaxError("Missing period.");
@@ -531,7 +541,7 @@ public class Parser {
 		if (verboseOutput)	System.out.println("Parsing print operation on the string '" + toString + "'.");
 
 		if (debugMode)	System.out.println(toString);
-		return "System.out.print(" + toString + ")\n";
+		return "System.out.print(" + toString + ")";
 	}
 
 	private String varAssign(String expression) throws SyntaxError {
@@ -620,8 +630,8 @@ public class Parser {
 		if (verboseOutput)	System.out.println("Parsing conditional with condition '" + condition + "', then '" + list + "', and otherwise '" + otherwise + "'.");
 
 		String out =  "if (" +condition + ")";
-		out += "\n" + " {" + list + "}";
-		out +=  "\n" + "else {" + otherwise + "}";
+		out += "\n" + formatString("{\n") + list + formatString("}");
+		out +=  "\n" + formatString("else {\n") + otherwise + formatString("}");
 		return out;
 	}
 
@@ -642,14 +652,14 @@ public class Parser {
 		if (verboseOutput)	System.out.println("Parsing while loop with condition '" + condition + "' and body '" + list + "'.");
 
 		String out =  "while (" +condition + ")";
-		out += "\n" + " {" + list + "}";
+		out += "{\n" + list  + formatString("}");
 		return out;
 	}
 	
 	private String parseList(String in) throws SyntaxError{
+		indentLevel += 1;
 		String out = "";
 		if (debugMode)	System.out.println("LIST");
-		Matcher l = list.matcher(in);
 		// value to hold the seneten
 		String sentence = "";
 		int nesting_level = 0;
@@ -657,6 +667,13 @@ public class Parser {
 			el = el.strip();
 			sentence += el;
 			var next_level = startConditionalOrLoop.matcher(el);
+			if(debugMode){
+				System.out.println(el);
+				if(nesting_level != 0){
+					System.out.println(nesting_level);
+					System.out.println(sentence);
+				}
+			}
 			if (next_level.find()){
 				nesting_level++;
 			}
@@ -674,6 +691,7 @@ public class Parser {
 		if (nesting_level != 0){
 			throw new SyntaxError("Nested conditional or loop is unbalanced");
 		}
+		indentLevel -= 1;
 		return out;
 	}
 	
