@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 public class Parser {
-	private static final boolean debugMode = false;	// used to toggle debug output
+	private static final boolean debugMode = true;	// used to toggle debug output
 	private static boolean verboseOutput = false;
 
 	public static void main (String[] args) {
@@ -68,11 +68,13 @@ public class Parser {
 	private Pattern bool_expr3= Pattern.compile("^not (.+)"); // NOT
 
 	private Pattern comp_expr = Pattern.compile("((.+) is on the same page as (.+)|(.+) is greater than (.+)|(.+) is less than (.+))");
-	private Pattern conditional = Pattern.compile("^Suppose (.+): then (.+); otherwise, (.+) Thanks$");
-	
-	
-	private Pattern loop = Pattern.compile("^Keep (.+) in the loop regarding: (.+) Thanks");
+
+	// Elements of a loop/conditional are comma seperated (might make more sense to use a semicolon)
 	private Pattern list = Pattern.compile("(.+?), (.+)");
+
+	private Pattern conditional = Pattern.compile("^[sS]{1}uppose (.+?): then (.+); otherwise, (.+) [tT]{1}hanks$");
+	private Pattern loop = Pattern.compile("^[kK]{1}eep (.+?) in the loop regarding: (.+) [tT]{1}hanks$");
+	private Pattern startConditionalOrLoop = Pattern.compile("([kK]{1}eep|[sS]{1}uppose)");
 	
 	private Pattern print = Pattern.compile("[hH]{1}ighlight (.+)");
 	
@@ -529,7 +531,7 @@ public class Parser {
 		if (verboseOutput)	System.out.println("Parsing print operation on the string '" + toString + "'.");
 
 		if (debugMode)	System.out.println(toString);
-		return "System.out.print(" + toString + ");\n";
+		return "System.out.print(" + toString + ")\n";
 	}
 
 	private String varAssign(String expression) throws SyntaxError {
@@ -622,18 +624,21 @@ public class Parser {
 		out +=  "\n" + "else {" + otherwise + "}";
 		return out;
 	}
-	
+
 	private String loop(String loop) throws SyntaxError {
 		Matcher m = this.loop.matcher(loop);
 		if (debugMode)	System.out.println("LOOP " + loop);
 		if(!m.find()){
 			return "";
 		}
-		if (debugMode)	System.out.println("LOOP");
-		String condition = parseBoolExpr(m.group(1));
-		if (debugMode)	System.out.println("LIST:" +m.group(2));
-		String list = parseList(m.group(2));
+		if (debugMode){
+			System.out.println("LOOP");
+			System.out.println("BOOL_EXPR: " +m.group(1));
+			System.out.println("LIST: " +m.group(2));
+		}	
 
+		String condition = parseBoolExpr(m.group(1));
+		String list = parseList(m.group(2));
 		if (verboseOutput)	System.out.println("Parsing while loop with condition '" + condition + "' and body '" + list + "'.");
 
 		String out =  "while (" +condition + ")";
@@ -645,8 +650,29 @@ public class Parser {
 		String out = "";
 		if (debugMode)	System.out.println("LIST");
 		Matcher l = list.matcher(in);
+		// value to hold the seneten
+		String sentence = "";
+		int nesting_level = 0;
 		for(String el : in.split(",")){
-			out += parseSentence(el.strip());
+			el = el.strip();
+			sentence += el;
+			var next_level = startConditionalOrLoop.matcher(el);
+			if (next_level.find()){
+				nesting_level++;
+			}
+			else if(el.equals("Thanks")){
+				nesting_level--;
+			}
+			if(nesting_level == 0){
+				out += parseSentence(sentence);
+				sentence = "";
+			}
+			else {
+				sentence += ", ";
+			}
+		}
+		if (nesting_level != 0){
+			throw new SyntaxError("Nested conditional or loop is unbalanced");
 		}
 		return out;
 	}
